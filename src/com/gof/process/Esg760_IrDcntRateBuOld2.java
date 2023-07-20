@@ -1,0 +1,125 @@
+package com.gof.process;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+import com.gof.dao.IrCurveSpotDao;
+import com.gof.dao.IrSprdDao;
+import com.gof.entity.IrCurveSpot;
+import com.gof.entity.IrDcntRateBu;
+import com.gof.entity.IrDcntRateBuIm;
+import com.gof.entity.IrParamSw;
+import com.gof.entity.IrSprdAfnsCalc;
+import com.gof.entity.IrSprdLpBiz;
+import com.gof.enums.EJob;
+import com.gof.util.StringUtil;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class Esg760_IrDcntRateBuOld2 extends Process {
+
+	public static final Esg760_IrDcntRateBuOld2 INSTANCE = new Esg760_IrDcntRateBuOld2();
+	public static final String jobId = INSTANCE.getClass().getSimpleName().toUpperCase().substring(0, ENTITY_LENGTH);
+
+	public static List<IrDcntRateBuIm> setIrDcntRateBu(String bssd, String irModelId, String applBizDv, Map<String, Map<Integer, IrParamSw>> paramSwMap) {
+
+		List<IrDcntRateBuIm> rst = new ArrayList<IrDcntRateBuIm>();
+
+		for(Map.Entry<String, Map<Integer, IrParamSw>> curveSwMap : paramSwMap.entrySet()) {
+			String irCurveId = curveSwMap.getKey();
+			
+//			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
+			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, irCurveId);
+
+			TreeMap<String, Double> spotMap = spotList.stream().collect(Collectors.toMap(IrCurveSpot::getMatCd, IrCurveSpot::getSpotRate, (k, v) -> k, TreeMap::new));
+
+			if(spotList.isEmpty()) {
+				log.warn("No IR Curve Spot Data [BIZ: {}, IR_CURVE_ID: {}] in [{}] for [{}]", applBizDv, irCurveId, toPhysicalName(IrCurveSpot.class.getSimpleName()), bssd);
+				continue;
+			}
+			
+			for(Map.Entry<Integer, IrParamSw> swEntry : curveSwMap.getValue().entrySet()) {
+				
+				if( swEntry.getKey()<= 6) {
+					IrParamSw swSce = swEntry.getValue();
+					
+					Map<String, Double> irSprdLpMap = IrSprdDao.getIrSprdLpBizList(bssd, "KICS", curveSwMap.getKey(), swSce.getIrCurveSceNo()).stream()
+                                .collect(Collectors.toMap(IrSprdLpBiz::getMatCd, IrSprdLpBiz::getLiqPrem));
+	
+					Map<String, Double> irSprdShkMap = IrSprdDao.getIrSprdAfnsCalcList(bssd, irModelId, curveSwMap.getKey(), swSce.getIrCurveSceNo()).stream()
+																.collect(Collectors.toMap(IrSprdAfnsCalc::getMatCd, IrSprdAfnsCalc::getShkSprdCont));
+
+					log.info("sceNo :{}, irSprdShkMap:{}" ,swSce.getIrCurveSceNo(), irSprdShkMap );
+
+					List<IrCurveSpot> spotSceList = spotList.stream().map(s -> s.deepCopy(s)).collect(Collectors.toList());
+
+					String fwdMatCd = StringUtil.objectToPrimitive(swSce.getFwdMatCd(), "M0000");
+					if(!fwdMatCd.equals("M0000")) {
+						Map<String, Double> fwdSpotMap = irSpotDiscToFwdMap(bssd, spotMap, fwdMatCd);
+						spotSceList.stream().forEach(s -> s.setSpotRate(fwdSpotMap.get(s.getMatCd())));
+					}
+
+					String pvtMatCd = StringUtil.objectToPrimitive(swSce.getPvtRateMatCd() , "M0000");
+					double pvtRate  = StringUtil.objectToPrimitive(spotMap.getOrDefault(pvtMatCd, 0.0), 0.0    );
+	//				double pvtMult  = StringUtil.objectToPrimitive(swSce.getValue().getMultPvtRate()  , 0.0    );
+					double intMult  = StringUtil.objectToPrimitive(swSce.getMultIntRate()  , 1.0    );
+					double addSprd  = StringUtil.objectToPrimitive(swSce.getAddSprd()      , 0.0    );
+					int    llp      = StringUtil.objectToPrimitive(swSce.getLlp()          , 20     );
+
+	//				log.info("{}, {}, {}, {}, {}, {}, {}, {}, {}", applBizDv, curveSwMap.getKey(), detScen, pvtMatCd, pvtRate, pvtMult, intMult, addSprd, llp);
+					for(IrCurveSpot spot : spotSceList) {
+						if(Integer.valueOf(spot.getMatCd().substring(1)) <= llp * MONTH_IN_YEAR) {
+
+							IrDcntRateBuIm dcntRateBuIm = new IrDcntRateBuIm();
+
+							double baseSpot = intMult * (StringUtil.objectToPrimitive(spot.getSpotRate()) -  pvtRate) + addSprd + pvtRate;  //pvtRate doesn't have an effect on parallel shift(only addSprd)
+							double baseSpotCont = irDiscToCont(baseSpot);
+
+							double shkCont      = irSprdShkMap.getOrDefault(spot.getMatCd(), 0.0);
+//							double lpDisc       = irSprdLpMap.getOrDefault(spot.getMatCd(), 0.0);
+							double lpDisc       = applBizDv.equals("KICS_A")? 0.0 : irSprdLpMap.getOrDefault(spot.getMatCd(), 0.0);
+
+//							double spotCont     = baseSpotCont + shkCont;
+//							double spotDisc     = irContToDisc(spotCont);
+//							double adjSpotDisc  = spotDisc + lpDisc;
+//							double adjSpotCont  = irDiscToCont(adjSpotDisc);
+
+							// 議곗젙 諛섏쁺 �쟾 �썑 鍮꾧탳瑜� �쐞�빐 湲곗〈 肄붾뱶�뿉�꽌 �닔�젙�븿.
+							double spotCont     = baseSpotCont ; // 議곗젙 諛섏쁺 �쟾
+							double spotDisc     = irContToDisc(spotCont);	// 議곗젙 諛섏쁺 �쟾
+							double adjSpotDisc  = spotDisc + lpDisc; // �쑀�룞�꽦 �봽由щ�몄뾼 諛섏쁺
+							double adjSpotCont  = irDiscToCont(adjSpotDisc) + shkCont; 	// �쑀�룞�꽦 �봽由щ�몄뾼 + shock 諛섏쁺
+
+							dcntRateBuIm.setBaseYymm(bssd);
+							dcntRateBuIm.setApplBizDv(applBizDv);
+							dcntRateBuIm.setIrModelId(irModelId);
+							dcntRateBuIm.setIrCurveId(curveSwMap.getKey());
+							dcntRateBuIm.setIrCurveSceNo(swSce.getIrCurveSceNo());
+							dcntRateBuIm.setMatCd(spot.getMatCd());
+							dcntRateBuIm.setSpotRateDisc(spotDisc);
+							dcntRateBuIm.setSpotRateCont(spotCont);
+							dcntRateBuIm.setLiqPrem(lpDisc);
+							dcntRateBuIm.setAdjSpotRateDisc(adjSpotDisc);
+							dcntRateBuIm.setAdjSpotRateCont(adjSpotCont);
+							dcntRateBuIm.setAddSprd(shkCont); // addSprd
+							dcntRateBuIm.setLastModifiedBy(jobId);
+							dcntRateBuIm.setLastUpdateDate(LocalDateTime.now());
+
+							rst.add(dcntRateBuIm);
+						  }
+						}
+					}
+			}
+		}
+		log.info("{}({}) creates [{}] results of [{}]. They are inserted into [{}] Table", jobId, EJob.valueOf(jobId).getJobName(), rst.size(), applBizDv, toPhysicalName(IrDcntRateBu.class.getSimpleName()));
+
+		return rst;
+	}
+
+}
+

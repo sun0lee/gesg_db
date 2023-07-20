@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+    "-//Hibernate/Hibernate Configuration DTD//EN"
+    "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+  <session-factory>
+
+    <property name="hibernate.connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
+    <property name="hibernate.connection.url">jdbc:oracle:thin:@localhost:1521/ORCL</property>
+    <property name="hibernate.connection.username">GESG</property>
+    <property name="hibernate.connection.password">gesg</property>
+    <property name="hibernate.dialect">org.hibernate.dialect.OracleDialect</property>
+
+    <property name="hibernate.jdbc.batch_size">50</property>
+    <property name="hibernate.order_inserts">true</property>
+    <property name="hibernate.order_updates">true</property>
+
+    <property name="hibernate.c3p0.min_size">10</property>
+    <property name="hibernate.c3p0.max_size">50</property>
+    <property name="hibernate.c3p0.max_statements">50</property>
+
+    <property name="hibernate.generate_statistics">true</property>
+    <!-- <property name="hibernate.current_session_context_class">thread</property>  -->
+    <property name="hibernate.physical_naming_strategy">com.gof.util.PhysicalNamingStrategyImpl</property>
+
+
+    <mapping class="com.gof.entity.CoCdMst"/>
+    <mapping class="com.gof.entity.CoEsgMeta"/>
+    <mapping class="com.gof.entity.CoJobInfo"/>
+    <mapping class="com.gof.entity.CoJobList"/>
+
+    <mapping class="com.gof.entity.IrCurve"/>
+    <mapping class="com.gof.entity.IrCurveFwd"/>
+    <mapping class="com.gof.entity.IrCurveSceBiz"/>
+    <mapping class="com.gof.entity.IrCurveSpot"/>
+    <mapping class="com.gof.entity.IrCurveSpotWeek"/>
+    <mapping class="com.gof.entity.IrCurveYtm"/>
+    <mapping class="com.gof.entity.IrCurveYtmUsr"/>
+    <mapping class="com.gof.entity.IrCurveYtmUsrHis"/>
+
+    <mapping class="com.gof.entity.IrDcntRate"/>
+    <mapping class="com.gof.entity.IrDcntRateBiz"/>
+    <mapping class="com.gof.entity.IrDcntRateBu"/>
+    <mapping class="com.gof.entity.IrDcntRateUsr"/>
+    <mapping class="com.gof.entity.IrDcntSceDetBiz"/>
+    <mapping class="com.gof.entity.IrDcntSceStoBiz"/>
+    <mapping class="com.gof.entity.IrDcntSceStoHis"/>
+    <mapping class="com.gof.entity.IrDcntSceStoGnr"/>
+
+    <mapping class="com.gof.entity.IrParamAfnsBiz"/>
+    <mapping class="com.gof.entity.IrParamAfnsCalc"/>
+    <mapping class="com.gof.entity.IrParamAfnsUsr"/>
+    <mapping class="com.gof.entity.IrParamHwBiz"/>
+    <mapping class="com.gof.entity.IrParamHwCalc"/>
+    <mapping class="com.gof.entity.IrParamHwRnd"/>
+    <mapping class="com.gof.entity.IrParamHwUsr"/>
+    <mapping class="com.gof.entity.IrParamModel"/>
+    <mapping class="com.gof.entity.IrParamModelBiz"/>
+    <mapping class="com.gof.entity.IrParamModelCalc"/>
+    <mapping class="com.gof.entity.IrParamModelRnd"/>
+    <mapping class="com.gof.entity.IrParamModelUsr"/>
+    <mapping class="com.gof.entity.IrParamSw"/>
+    <mapping class="com.gof.entity.IrParamSwUsr"/>
+
+    <mapping class="com.gof.entity.IrSprdAfnsBiz"/>
+    <mapping class="com.gof.entity.IrSprdAfnsCalc"/>
+    <mapping class="com.gof.entity.IrSprdAfnsUsr"/>
+    <mapping class="com.gof.entity.IrSprdCrd"/>
+    <mapping class="com.gof.entity.IrSprdCurve"/>
+    <mapping class="com.gof.entity.IrSprdLp"/>
+    <mapping class="com.gof.entity.IrSprdLpBiz"/>
+    <mapping class="com.gof.entity.IrSprdLpUsr"/>
+
+    <mapping class="com.gof.entity.IrValidParamHw"/>
+    <mapping class="com.gof.entity.IrValidRnd"/>
+    <mapping class="com.gof.entity.IrValidSceSto"/>
+    <mapping class="com.gof.entity.IrQvalSce"/>
+
+    <mapping class="com.gof.entity.IrVolSwpnUsr"/>
+    <mapping class="com.gof.entity.IrVolSwpn"/>
+
+
+    <mapping class="com.gof.entity.MvCorr"/>
+    <mapping class="com.gof.entity.MvVol"/>
+
+    <mapping class="com.gof.entity.FxRateHis"/>
+
+    <mapping class="com.gof.entity.RcCorpTmUsr"/>
+    <mapping class="com.gof.entity.RcCorpTm"/>
+    <mapping class="com.gof.entity.RcCorpPd"/>
+    <mapping class="com.gof.entity.RcCorpPdBiz"/>
+
+    <mapping class="com.gof.entity.StdAsst"/>
+    <mapping class="com.gof.entity.StdAsstIrSceSto"/>
+    <mapping class="com.gof.entity.StdAsstPrc"/>
+
+    <mapping class="com.gof.entity.his.HIrCurve"/>
+    <mapping class="com.gof.entity.his.HIrCurveFwd"/>
+    <mapping class="com.gof.entity.his.HIrCurveSceBiz"/>
+    <mapping class="com.gof.entity.his.HIrCurveSpot"/>
+    <mapping class="com.gof.entity.his.HIrCurveSpotWeek"/>
+    <mapping class="com.gof.entity.his.HIrCurveYtm"/>
+
+    <mapping class="com.gof.entity.his.HIrDcntRate"/>
+    <mapping class="com.gof.entity.his.HIrDcntRateBiz"/>
+    <mapping class="com.gof.entity.his.HIrDcntRateBu"/>
+    <mapping class="com.gof.entity.his.HIrDcntSceDetBiz"/>
+    <mapping class="com.gof.entity.his.HIrDcntSceStoBiz"/>
+    <mapping class="com.gof.entity.his.HIrDcntSceStoGnr"/>
+
+    <mapping class="com.gof.entity.his.HIrParamAfnsBiz"/>
+    <mapping class="com.gof.entity.his.HIrParamAfnsCalc"/>
+    <mapping class="com.gof.entity.his.HIrParamHwBiz"/>
+    <mapping class="com.gof.entity.his.HIrParamHwCalc"/>
+    <mapping class="com.gof.entity.his.HIrParamHwRnd"/>
+    <mapping class="com.gof.entity.his.HIrParamModel"/>
+    <mapping class="com.gof.entity.his.HIrParamModelBiz"/>
+    <mapping class="com.gof.entity.his.HIrParamModelCalc"/>
+    <mapping class="com.gof.entity.his.HIrParamModelRnd"/>
+    <mapping class="com.gof.entity.his.HIrParamSw"/>
+
+    <mapping class="com.gof.entity.his.HIrSprdAfnsBiz"/>
+    <mapping class="com.gof.entity.his.HIrSprdAfnsCalc"/>
+    <mapping class="com.gof.entity.his.HIrSprdCrd"/>
+    <mapping class="com.gof.entity.his.HIrSprdCurve"/>
+    <mapping class="com.gof.entity.his.HIrSprdLp"/>
+    <mapping class="com.gof.entity.his.HIrSprdLpBiz"/>
+
+    <mapping class="com.gof.entity.his.HIrValidParamHw"/>
+    <mapping class="com.gof.entity.his.HIrValidRnd"/>
+    <mapping class="com.gof.entity.his.HIrValidSceSto"/>
+    <mapping class="com.gof.entity.his.HIrQvalSce"/>
+    <mapping class="com.gof.entity.his.HIrVolSwpn"/>
+
+    <mapping class="com.gof.entity.his.HFxRateHis"/>
+    <mapping class="com.gof.entity.his.HRcCorpTm"/>
+    <mapping class="com.gof.entity.his.HRcCorpPd"/>
+    <mapping class="com.gof.entity.his.HRcCorpPdBiz"/>
+
+    <mapping class="com.gof.entity.his.TransferJob"/>
+
+    <mapping class="com.gof.entity.IrDcntRateBuIm"/>
+    <mapping class="com.gof.entity.IrDcntSceIm"/>
+
+    <mapping class="com.gof.entity.RcInflationUsr"/>
+    <mapping class="com.gof.entity.RcSegLgdUsr"/>
+    <mapping class="com.gof.entity.RcSegPrepRateUsr"/>
+
+	<mapping class="com.gof.entity.RcInflationBiz"/>
+    <mapping class="com.gof.entity.RcSegLgdBiz"/>
+    <mapping class="com.gof.entity.RcSegPrepRateBiz"/>
+
+	<mapping class="com.gof.entity.his.HRcInflationBiz"/>
+    <mapping class="com.gof.entity.his.HRcSegLgdBiz"/>
+    <mapping class="com.gof.entity.his.HRcSegPrepRateBiz"/>
+    
+    
+    <mapping class="com.gof.entity.IrDiscRateUsr"/>
+    <mapping class="com.gof.entity.IrDiscRate"/>
+    <mapping class="com.gof.entity.IrDiscMgtRate"/>
+
+  </session-factory>
+</hibernate-configuration>
+
