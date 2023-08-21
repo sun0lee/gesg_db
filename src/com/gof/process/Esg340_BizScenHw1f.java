@@ -42,6 +42,7 @@ public class Esg340_BizScenHw1f extends Process {
 		for(Map.Entry<String, Map<Integer, IrParamSw>> curveSwMap : paramSwMap.entrySet()) {
 			for(Map.Entry<Integer, IrParamSw> swSce : curveSwMap.getValue().entrySet()) {
 //				
+				//param sw 설정 getStoSceGenYn 에 따라 Y인 대상만 
 				if(!StringUtil.objectToPrimitive(swSce.getValue().getStoSceGenYn(), "N").toUpperCase().equals("Y")) continue;				
 //				if(!applBizDv.equals("KICS") || !swSce.getKey().equals(1)) continue;
 				
@@ -69,9 +70,11 @@ public class Esg340_BizScenHw1f extends Process {
 					continue;
 				}
 				
+				// 20 Y
 				int[] alphaPiece = paramHw.stream().filter(s->s.getParamTypCd().equals("ALPHA") && s.getMatCd().equals("M0240"))
 										  	       .mapToInt(s-> Integer.valueOf(s.getMatCd().split("M")[1])/12).toArray();				
 				
+				// 1,2,3,5,7,10 Y
 				int[] sigmaPiece = paramHw.stream().filter(s->s.getParamTypCd().equals("SIGMA") && !s.getMatCd().equals("M1200") && !s.getMatCd().equals("M0240"))
 												   .mapToInt(s-> Integer.valueOf(s.getMatCd().split("M")[1])/12).toArray();	
 				log.info("{}, {}", alphaPiece, sigmaPiece);				
@@ -92,36 +95,38 @@ public class Esg340_BizScenHw1f extends Process {
 				List<IrParamHwRnd>    randNumList = new ArrayList<IrParamHwRnd>();				
 				
 				//TODO:
-				if(applBizDv.equals("1KICS") && curveSwMap.getKey().equals("1010000") && swSce.getKey().equals(1)) {
-					
-//					String pathDir = "C:/Users/NHfire.DESKTOP-J5J0BJV/Desktop/";
-					String pathDir = "C:/Users/gof/Desktop/";
-					String path0 = pathDir + "SW_FWD_"        + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
-					String path1 = pathDir + "HW_FWD_DISC_"   + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
-					String path2 = pathDir + "HW_RANDOM_"     + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
-					String path3 = pathDir + "HW_YIELD_DISC_" + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
-					
-					try {
-						double[][] sw = new double[hw1f.getFwdDiscBase().length][3];
-						for(int i=0; i<sw.length; i++) {
-							sw[i][0] = i+1;
-							sw[i][1] = hw1f.getSpotDiscBase()[i];
-							sw[i][2] = hw1f.getFwdDiscBase()[i];
-						}			
-						writeArraytoCSV(sw, path0);  //matTranspose(sw)
-						writeArraytoCSV(hw1f.getFwdDiscScen(), path1);
-//						writeArraytoCSV(matTranspose(hw1f.getFwdDiscScen()), path1);
-						if(swSce.getKey().equals(1)) writeArraytoCSV(hw1f.getRandNum(), path2);
-						
-						hw1f.getIrModelHw1fBondYield(hw1f.getIrModelHw1fList(), 3.0);
-						writeArraytoCSV(hw1f.getBondYieldDisc(), path3);
-											
-					} catch (Exception e) {
-						e.printStackTrace();
-					}					
-				}
+//				if(applBizDv.equals("1KICS") && curveSwMap.getKey().equals("1010000") && swSce.getKey().equals(1)) {
+//					
+////					String pathDir = "C:/Users/NHfire.DESKTOP-J5J0BJV/Desktop/";
+//					String pathDir = "C:/Users/gof/Desktop/";
+//					String path0 = pathDir + "SW_FWD_"        + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
+//					String path1 = pathDir + "HW_FWD_DISC_"   + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
+//					String path2 = pathDir + "HW_RANDOM_"     + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
+//					String path3 = pathDir + "HW_YIELD_DISC_" + curveSwMap.getKey() + "_" + swSce.getKey() + ".csv";
+//					
+//					try {
+//						double[][] sw = new double[hw1f.getFwdDiscBase().length][3];
+//						for(int i=0; i<sw.length; i++) {
+//							sw[i][0] = i+1;
+//							sw[i][1] = hw1f.getSpotDiscBase()[i];
+//							sw[i][2] = hw1f.getFwdDiscBase()[i];
+//						}			
+//						writeArraytoCSV(sw, path0);  //matTranspose(sw)
+//						writeArraytoCSV(hw1f.getFwdDiscScen(), path1);
+////						writeArraytoCSV(matTranspose(hw1f.getFwdDiscScen()), path1);
+//						if(swSce.getKey().equals(1)) writeArraytoCSV(hw1f.getRandNum(), path2);
+//						
+//						hw1f.getIrModelHw1fBondYield(hw1f.getIrModelHw1fList(), 3.0);
+//						writeArraytoCSV(hw1f.getBondYieldDisc(), path3);
+//											
+//					} catch (Exception e) {
+//						e.printStackTrace();
+//					}					
+//				}
 				
-				if(swSce.getKey().equals(1)) {
+				// 1번 시나리오 (기준시나리오) 
+				if(swSce.getKey().equals(1)) { 
+					// 난수 가져오기 
 					randNumList = hw1f.getRandomScenList().stream().map(s -> s.setKeys(irModelId, curveSwMap.getKey(), jobId)).collect(Collectors.toList());	
 				}				
 				sceRst.addAll(stoBizList);

@@ -25,10 +25,12 @@ public class Esg330_BizParamHw1f extends Process {
 		List<IrParamHwUsr>  paramHwUsr  = IrParamHwDao.getIrParamHwUsrList(bssd, applBizDv, irModelId, irCurveId);		
 		List<IrParamHwCalc> paramHwCalc = IrParamHwDao.getIrParamHwCalcList(bssd, irCurveId);   //just counting in E_IR_PARAM_HW_CALC
 		
+		// user 입력정보를 우선으로 적용함 
 		if(!paramHwUsr.isEmpty()) {			
 			paramHwBiz = paramHwUsr.stream().map(s -> s.convert()).collect(Collectors.toList());
 			log.info("{}({}) creates {} results from [{}]. They are inserted into [{}] Table", jobId, EJob.valueOf(jobId).getJobName(), paramHwBiz.size(), toPhysicalName(IrParamHwUsr.class.getSimpleName()), toPhysicalName(IrParamHwBiz.class.getSimpleName()));			
 		}
+		// 그외 (user 테이블이 비어있는 경우) 내부 산출 
 		else if(applBizDv.equals("KICS") && !paramHwCalc.isEmpty()) {			
 			paramHwBiz = calcBizHw1fParam(bssd, applBizDv, irModelId, irCurveId, hwAlphaAvgNum, hwAlphaAvgMatCd, hwSigmaAvgNum, hwSigmaAvgMatCd);			
 			log.info("{}({}) creates {} results from [{}]. They are inserted into [{}] Table", jobId, EJob.valueOf(jobId).getJobName(), paramHwBiz.size(), toPhysicalName(IrParamHwCalc.class.getSimpleName()), toPhysicalName(IrParamHwBiz.class.getSimpleName()));
@@ -51,7 +53,9 @@ public class Esg330_BizParamHw1f extends Process {
 		List<IrParamHwBiz>  paramHwBiz  = new ArrayList<IrParamHwBiz>();
 		List<IrParamHwCalc> paramHwCalc = IrParamHwDao.getIrParamHwCalcList(bssd, irModelId + "_NSP", irCurveId);
 
+		// NSP (만기에 구분없이 산출함) : calc의 정보를 biz에 세팅  
 		for(IrParamHwCalc calc : paramHwCalc) {
+			// 해당 작업에서 cost는 아무것도 하지 않음 (skip)
 			if(calc.getParamTypCd().equals("COST")) continue;
 			
 			IrParamHwBiz biz = new IrParamHwBiz();			
@@ -67,8 +71,9 @@ public class Esg330_BizParamHw1f extends Process {
 			
 			paramHwBiz.add(biz);
 		}		
-						
+		// alpha 
 		paramHwBiz.addAll(createBizAppliedParameterOuter(bssd, applBizDv, irModelId, irCurveId, "ALPHA", hwAlphaAvgNum, hwAlphaAvgMatCd));
+		// sigma 
 		paramHwBiz.addAll(createBizAppliedParameterOuter(bssd, applBizDv, irModelId, irCurveId, "SIGMA", hwSigmaAvgNum, hwSigmaAvgMatCd));		
 		
 		if(applBizDv.equals("KICS")) paramHwBiz.stream().forEach(s -> log.info("PARAM BIZ from CALC: [{}, {}, {}, {}], {}", s.getIrModelId(), s.getApplBizDv(), s.getParamTypCd(), s.getMatCd(), s.getParamVal()));
@@ -81,6 +86,7 @@ public class Esg330_BizParamHw1f extends Process {
 		
 		List<IrParamHwCalc> paramCalcHisList = new ArrayList<IrParamHwCalc>();
 		if(paramTypCd.equals("ALPHA")) {
+			// alpha의 경우 스왑션 변동성이 관찰되지 않는 장기구간(10년~20년)의 최근 10년의 평균을 적용함 (전체구간이 아니라 특정 구간값 (10~20년)을 사용하므로 SP(만기에 따라 구분하여 산출한 모수를 사용함.))  
 			paramCalcHisList = IrParamHwDao.getIrParamHwCalcHisList(bssd, irModelId + "_SP", irCurveId, paramTypCd, monthNum, matCd);
 		}
 		else {

@@ -210,6 +210,8 @@ public class Hw1fSimulationKics extends IrModel {
 		else this.calShortRate();
 		
 		this.calHw1fTermStructure();
+		
+		// 적정성 검증  
 		this.checkMartingaleTest();
 	
 		List<IrModelSce> sceRslt = new ArrayList<IrModelSce>();		
@@ -390,8 +392,12 @@ public class Hw1fSimulationKics extends IrModel {
 		
 		this.theta    = new double[this.prjMonth];
 
+		log.info("fwdContBase :{} ",fwdContBase);
+		
 		for(int i=0; i<this.prjMonth; i++) {
-			this.theta[i] = (this.fwdContBase[i+1] - this.fwdContBase[i]) / (this.alpha[i] * dt) + this.fwdContBase[i] + this.coefZeta(i);
+			this.theta[i] = (this.fwdContBase[i+1] - this.fwdContBase[i]) / (this.alpha[i] * dt) 
+					       + this.fwdContBase[i] 
+					       + this.coefZeta(i);
 //			if(i>1190) log.info("Theta: {}, Alpha: {}, Sigma: {}, FWD_i+1: {} FWD_i: {}, tf: {}", this.theta[i], this.alpha[i], this.sigma[i], this.fwdContBase[i+1], this.fwdContBase[i], this.timeFactor[i]);
 		}
 	}	
@@ -431,19 +437,26 @@ public class Hw1fSimulationKics extends IrModel {
 //	1 / a(t) * [Integral sigma(s)^2 * exp(-2 * a(s) * (t1-s)) * ds] for Calculation Theta(t)	
 	private double coefZetaDualPiece(int monIdx) {
 		
+		// tauMonth = 239
 		int tauMonth = this.alphaPiece[0] * MONTH_IN_YEAR - 1;
 		if(monIdx <= tauMonth) return coefZetaSigmaPiece(monIdx);
 		
 		double zeta = 0.0;		
 
+		// 0 ~ 239 까지 
 		for(int i=0; i<=tauMonth; i++) {				
 			double timeFactor_0 = ((i==0) ? 0 : this.timeFactor[i-1]);			
-			zeta += Math.pow(this.sigma[i], 2) * ( Math.exp(2*this.alpha[i]*this.timeFactor[i]) - Math.exp(2*this.alpha[i]*timeFactor_0) ) / (2 * this.alpha[i])
-				             * Math.exp( -2*(this.alpha[tauMonth] - this.alpha[monIdx])*this.timeFactor[tauMonth] );
+			zeta += Math.pow(this.sigma[i], 2) 
+					* ( Math.exp(2*this.alpha[i]*this.timeFactor[i]) - Math.exp(2*this.alpha[i]*timeFactor_0) ) 
+					/ (2 * this.alpha[i])
+				    * Math.exp( -2*(this.alpha[tauMonth] - this.alpha[monIdx])*this.timeFactor[tauMonth] );
 		}
 		
+		// 240 ~ 1440 구간
 		for(int i=tauMonth+1; i<=monIdx; i++) {	
-			zeta += Math.pow(this.sigma[i], 2) * ( Math.exp(2*this.alpha[i]*this.timeFactor[i]) - Math.exp(2*this.alpha[i]*this.timeFactor[i-1]) ) / (2 * this.alpha[i]);
+			zeta += Math.pow(this.sigma[i], 2) 
+					* ( Math.exp(2*this.alpha[i]*this.timeFactor[i]) - Math.exp(2*this.alpha[i]*this.timeFactor[i-1]) ) 
+					/ (2 * this.alpha[i]);
 		}						
 		zeta  = zeta * Math.exp(-2*this.alpha[monIdx]*this.timeFactor[monIdx]) / this.alpha[monIdx];		
 //		log.info("monIdx: {}, tauMonth: {}, timeFactor_monIdx:{}, timeFactor_tau: {}, alpha_monIdx: {}, alpha_tau: {}", monIdx, tauMonth, round(this.timeFactor[monIdx], 1), this.timeFactor[tauMonth], this.alpha[monIdx], this.alpha[tauMonth]);
@@ -466,12 +479,16 @@ public class Hw1fSimulationKics extends IrModel {
 		
 		for(int i=0; i<this.prjMonth-1; i++) {
 			for(int j=0; j<this.scenNum; j++) {
-				this.sRateScen[i+1][j] = this.sRateScen[i][j] + this.alpha[i] * (this.theta[i] - this.sRateScen[i][j]) * this.dt + this.sigma[i] * Math.sqrt(this.dt)* this.randNum[i][j] * 1.0;
+				this.sRateScen[i+1][j] 
+						= this.sRateScen[i][j] 
+						+ this.alpha[i] * (this.theta[i] - this.sRateScen[i][j]) * this.dt 
+						+ this.sigma[i] * Math.sqrt(this.dt)* this.randNum[i][j] * 1.0;
+				
 //				limit value of sqrt( {1 - exp(-2*a*dt)} / (2*a) ) is sqrt(dt) when a -> 0 
 //				this.sRateScen[i+1][j] = this.sRateScen[i][j] + this.alpha[i] * (this.theta[i] - this.sRateScen[i][j]) * this.dt 
 //						               + this.sigma[i] * Math.sqrt( (1-Math.exp(-2*this.alpha[i]*this.dt)) / (2*this.alpha[i]) ) * this.randNum[i][j] * 1.0;
 
-//				if((i>238 && i<242) && (j==0 || j==1)) log.info("{}, {}, {}, {}, {}, {}", i+1, j+1, this.alpha[i], this.sigma[i], irContToDisc(this.sRateScen[i+1][j]), irContToDisc(this.sRateScen[i][j]));				
+				if((i>238 && i<242) && (j==0 || j==1)) log.info("{}, {}, {}, {}, {}, {}", i+1, j+1, this.alpha[i], this.sigma[i], irContToDisc(this.sRateScen[i+1][j]), irContToDisc(this.sRateScen[i][j]));				
 			}
 		}		
 		this.sRateMean = matToVecMean(this.sRateScen);
@@ -549,6 +566,8 @@ public class Hw1fSimulationKics extends IrModel {
 				this.spotContScen  [i+1][j] = -1.0 * Math.log(this.dcntFactorScen[i+1][j]) / this.timeFactor[i+1];
 				this.spotDiscScen  [i+1][j] = irContToDisc(this.spotContScen[i+1][j]);
 				this.fwdContScen   [i+1][j] = (this.spotContScen[i+1][j] * this.timeFactor[i+1] - this.spotContScen[i][j] * this.timeFactor[i]) / this.dt;
+				
+				if(i<3 &&j==1) log.info("i: {}, spotContScen :{},timeFactor {},spotContScen :{},timeFactor {} ",i,this.spotContScen[i+1][j],this.timeFactor[i+1],this.spotContScen[i][j],this.timeFactor[i]);	
 				this.fwdDiscScen   [i+1][j] = irContToDisc(this.fwdContScen[i+1][j]);
 			}			
 		}

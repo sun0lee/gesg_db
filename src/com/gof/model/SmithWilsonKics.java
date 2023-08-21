@@ -41,8 +41,8 @@ public class SmithWilsonKics extends IrModel {
 	private double                        alphaPp           = 1.0;
 	private double                        alphaDpp          = 0.0;
 	private double                        alphaFwd          = 0.0;
-	private double                        alphaFwdT         = 0.0;
-	private double                        targetFwd         = 0.0;
+//	private double                        alphaFwdT         = 0.0;
+//	private double                        targetFwd         = 0.0;
 
 	private RealMatrix                    zetaColumn;
 
@@ -197,12 +197,13 @@ public class SmithWilsonKics extends IrModel {
 				if(Math.abs(Math.exp(this.ltfrCont) - Math.exp(this.alphaFwd)) < ltfrEpsilon) {
 					break;
 				}
-				else if(this.alphaFwd > this.ltfrCont) {
-					this.alphaFwdT = Math.log(Math.exp(this.ltfrCont) + ltfrEpsilon);
-				}
-				else {
-					this.alphaFwdT = Math.log(Math.exp(this.ltfrCont) - ltfrEpsilon);
-				}
+				// 23.07.21 여기도 불필요.
+//				else if(this.alphaFwd > this.ltfrCont) {
+//					this.alphaFwdT = Math.log(Math.exp(this.ltfrCont) + ltfrEpsilon);
+//				}
+//				else {
+//					this.alphaFwdT = Math.log(Math.exp(this.ltfrCont) - ltfrEpsilon);
+//				}
 			}
 			else {
 				

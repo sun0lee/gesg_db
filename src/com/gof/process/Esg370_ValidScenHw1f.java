@@ -52,6 +52,7 @@ public class Esg370_ValidScenHw1f extends Process {
 					continue;
 				}
 				
+				// 결정론 시나리오 결과 가져오기 
 				List<IrCurveSpot> adjSpotRate = IrDcntRateDao.getIrDcntRateBuToAdjSpotList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey());				
 //				List<IrCurveSpot> adjSpotRate = IrDcntRateDao.getIrDcntRateBuToBaseSpotList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey());
 				if(adjSpotRate.isEmpty()) {
@@ -64,6 +65,7 @@ public class Esg370_ValidScenHw1f extends Process {
 					log.warn("No HW1F Model Parameter exist in [MODEL: {}] [IR_CURVE_ID: {}] in [{}] Table", irModelId, curveSwMap.getKey(), Process.toPhysicalName(IrParamHwBiz.class.getSimpleName()));
 					continue;
 				}
+				// parameter
 				List<Hw1fCalibParas> hwParasList = Hw1fCalibParas.convertFrom(paramHw);
 //				log.info("{}, {}", hwParasList);
 				
@@ -169,8 +171,13 @@ public class Esg370_ValidScenHw1f extends Process {
 			mat++;
 		}		
 		stoDcntRateMean = matToVecMean(stoDcntRate);
+		log.info("stoDcntRateMean:{}",stoDcntRateMean);
+		
 		stoPriceMean    = matToVecMean(stoPrice);
+		log.info("stoPriceMean:{}",stoPriceMean);
+		
 		stoPriceSe      = matToVecStdError(stoPrice, (double)stoPrice[0].length);
+		log.info("stoPriceSe:{}",stoPriceSe);
 		
 		for(int i=0; i<stoDcntRate.length; i++) {
 			double stoPricePre = ((i==0) ? 1.0 : stoPriceMean[i-1]);
@@ -192,11 +199,18 @@ public class Esg370_ValidScenHw1f extends Process {
 			} 
 			mat++;
 		}		
-		stoYieldDotDcntMean = matToVecMean(stoYieldDotDcnt);
-		stoYieldDotDcntSe   = matToVecStdError(stoYieldDotDcnt, (double)stoYieldDotDcnt[0].length);
 		
-		for(int i=0; i<stoYieldDotDcnt.length; i++) {			
+		stoYieldDotDcntMean = matToVecMean(stoYieldDotDcnt);
+//		log.info("stoYieldDotDcntMean:{}",stoYieldDotDcntMean);
+		
+		stoYieldDotDcntSe   = matToVecStdError(stoYieldDotDcnt, (double)stoYieldDotDcnt[0].length);
+//		log.info("stoYieldDotDcntSe:{}",stoYieldDotDcntSe);
+		
+		for(int i=0; i<stoYieldDotDcnt.length; i++) {
+			// 상한 : 평균 + 1.96 * sigma 
 			stoYieldDotDcntUpper[i] = stoYieldDotDcntMean[i] + upper * stoYieldDotDcntSe[i];
+			
+			// 하한 : 평균 - 1.96 * sigma
 			stoYieldDotDcntLower[i] = stoYieldDotDcntMean[i] + lower * stoYieldDotDcntSe[i];			
 		}				
 		
