@@ -74,7 +74,8 @@ public class Esg261_IrDcntRateBu_Ytm extends Process {
 //				double pvtMult  = StringUtil.objectToPrimitive(swSce.getValue().getMultPvtRate()  , 1.0    );  // YTM SPREAD 濡� 移쇰읆 �쓽誘� 蹂�寃쏀븿==> ytmAdd 濡� 湲곗쿂由�..
 				double intMult  = StringUtil.objectToPrimitive(swSce.getValue().getMultIntRate()  , 1.0    );
 				double addSprd  = StringUtil.objectToPrimitive(swSce.getValue().getAddSprd()      , 0.0    );
-				int    llp      = StringUtil.objectToPrimitive(swSce.getValue().getLlp()          , 20     );
+//				int    llp      = StringUtil.objectToPrimitive(swSce.getValue().getLlp()          , 20     );
+				int    llp      = swSce.getValue().getLlp();
 				
 
 				log.info("{}, {}, {}, {}, {}, {}, {}, {}, {}", applBizDv, curveSwMap.getKey(), swSce.getKey(), pvtMatCd, pvtRate, intMult, addSprd, llp);

@@ -435,6 +435,7 @@ public class Hw1fSimulationKics extends IrModel {
 	}	
 	
 //	1 / a(t) * [Integral sigma(s)^2 * exp(-2 * a(s) * (t1-s)) * ds] for Calculation Theta(t)	
+	// alpha가 단기구간과 장기구간으로 구분된 piecewise constant 이므로 구간에 따라 식이 구분됨.
 	private double coefZetaDualPiece(int monIdx) {
 		
 		// tauMonth = 239

@@ -37,7 +37,8 @@ public class Esg240_LpSprd extends Process {
 			
 			for(Map.Entry<Integer, IrParamSw> swSce : curveSwMap.getValue().entrySet()) {				
 				
-				int llp = StringUtil.objectToPrimitive(swSce.getValue().getLlp(), 20);
+//				int llp = StringUtil.objectToPrimitive(swSce.getValue().getLlp(), 20);
+				int llp = swSce.getValue().getLlp();
 				for(String tenor : tenorList) {					
 //					log.info("tenor: {}, {}, {}", tenor, tenor.substring(1), swSce.getValue().getLlp());					
 
@@ -80,7 +81,8 @@ public class Esg240_LpSprd extends Process {
 			
 			for(Map.Entry<Integer, IrParamSw> swSce : curveSwMap.getValue().entrySet()) {
 
-				int llp = StringUtil.objectToPrimitive(swSce.getValue().getLlp(), 20);				
+//				int llp = StringUtil.objectToPrimitive(swSce.getValue().getLlp(), 20);	
+				int llp = swSce.getValue().getLlp();
 				for(IrSprdCurve lpCrv : IrCurveSpotDao.getIrSprdCurve(bssd, lpCurveId)) {
 					if(Integer.valueOf(lpCrv.getMatCd().substring(1)) <= llp * MONTH_IN_YEAR) {
 						
@@ -115,7 +117,8 @@ public class Esg240_LpSprd extends Process {
 			
 			for(Map.Entry<Integer, IrParamSw> swSce : curveSwMap.getValue().entrySet()) {
 
-				int llp = StringUtil.objectToPrimitive(swSce.getValue().getLlp(), 20);				
+//				int llp = StringUtil.objectToPrimitive(swSce.getValue().getLlp(), 20);	
+				int llp = swSce.getValue().getLlp();
 				List<IrSprdLpUsr> lpUsr = IrSprdDao.getIrSprdLpUsrList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey());
 				
 				for(IrSprdLpUsr usr : lpUsr) {

@@ -405,12 +405,16 @@ public class Main {
 //		jobList.add("250");
 //		jobList.add("260");
 //		jobList.add("261");
-		jobList.add("270");
-		jobList.add("271");
-		jobList.add("280");
+//		jobList.add("270");
+//		jobList.add("271");
+//		jobList.add("280");
+//		jobList.add("310");
+//		jobList.add("320");
 //		jobList.add("330");
-//		jobList.add("340");
-//		jobList.add("370");
+		jobList.add("340"); // 확률론 시나리오 생성 
+//		jobList.add("350"); // 확률론 수익률 생성 
+//		jobList.add("360");
+		jobList.add("370");	// martingale test
 //		jobList.add("710");
 //		jobList.add("720");
 //		jobList.add("711");
@@ -773,9 +777,11 @@ public class Main {
 						log.warn("No Ir Curve Data [{}] in Smith-Wilson Map for [{}]", irCrv.getKey(), bssd);
 						continue;
 					}
-
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+					//check : min llp,20) 처리의 이유.entity에서는 default 처리만 하고 있음. llp가 30년이라고 하더라도 통계를 위한 집계구간을 20년으로 한정하는 것인지?
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
 //					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
+					
 					log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);
 
 					if(tenorList.isEmpty()) {
@@ -826,8 +832,9 @@ public class Main {
 						continue;
 					}
 
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
 //					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(), 20));
 					log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);
 
 					if(tenorList.isEmpty()) {
@@ -894,7 +901,8 @@ public class Main {
 
 					log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(), 20));
 //					tenorList.remove("M0048"); tenorList.remove("M0084"); tenorList.remove("M0180");  //FOR CHECK w/ FSS
 //					log.info("{}", tenorList);
 					//TODO:
@@ -1360,7 +1368,9 @@ public class Main {
 			CoJobInfo jobLog = startJogLog(EJob.ESG310);
 
 			String irModelId    = argInDBMap.getOrDefault("HW_MODE", "HW1F").trim().toUpperCase();
+			
 			String irModelIdNsp = irModelId + "_NSP";
+			// 시장에서 스왑션 변동성이 관찰되지 않는 구간을 구분하여 산출하기 위해 SP (separated parameter)를 정의함. 
 			String irModelIdSp  = irModelId + "_SP";
 
 			List<IrParamModel> modelMst = IrParamModelDao.getParamModelList(irModelId);
@@ -1379,14 +1389,16 @@ public class Main {
 						continue;
 					}
 
-//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), 20);
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), 20);
+					
 					log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);
 					if(tenorList.isEmpty()) {
 						log.warn("No Spot Rate Data [ID: {}] for [{}]", irCrv.getKey(), bssd);
 						continue;
 					}
 
+					// paramHwCalc Nsp 삭제 
 					int delNum1 = session.createQuery("delete IrParamHwCalc a where baseYymm=:param1 and a.irModelId=:param2 and a.irCurveId =:param3")
 								 		 .setParameter("param1", bssd)
 		                     			 .setParameter("param2", irModelIdNsp)
@@ -1395,7 +1407,7 @@ public class Main {
 
 					log.info("[{}] has been Deleted in Job:[{}] [IR_MODEL_ID: {}, IR_CURVE_ID: {}, COUNT: {}]", Process.toPhysicalName(IrParamHwCalc.class.getSimpleName()), jobLog.getJobId(), irModelIdNsp, irCrv.getKey(), delNum1);
 
-
+					// paramHwCalc Sp 삭제 
 					int delNum2 = session.createQuery("delete IrParamHwCalc a where baseYymm=:param1 and a.irModelId=:param2 and a.irCurveId=:param3")
 								 		 .setParameter("param1", bssd)
 			                			 .setParameter("param2", irModelIdSp)
@@ -1404,7 +1416,7 @@ public class Main {
 
 					log.info("[{}] has been Deleted in Job:[{}] [IR_MODEL_ID: {}, IR_CURVE_ID: {}, COUNT: {}]", Process.toPhysicalName(IrParamHwCalc.class.getSimpleName()), jobLog.getJobId(), irModelIdSp , irCrv.getKey(), delNum2);
 
-
+					// validParamHw Nsp 삭제 
 					int delNum3 = session.createQuery("delete IrValidParamHw a where baseYymm=:param1 and a.irModelId=:param2 and a.irCurveId=:param3")
 										 .setParameter("param1", bssd)
 										 .setParameter("param2", irModelIdNsp)
@@ -1413,6 +1425,7 @@ public class Main {
 
 					log.info("[{}] has been Deleted in Job:[{}] [IR_CURVE_ID: {}, COUNT: {}]", Process.toPhysicalName(IrValidParamHw.class.getSimpleName()), jobLog.getJobId(), irCrv.getKey(), delNum3);
 
+					// input : 기준일자의 spot rate 
 					List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, irCrv.getKey(), tenorList);
 
 					log.info("SPOT RATE: [ID: {}], [SIZE: {}]", irCrv.getKey(), spotList.size());
@@ -1421,6 +1434,7 @@ public class Main {
 						continue;
 					}
 
+					// input : 스왑션 변동성 데이터 
 					List<IrVolSwpn> swpnVolList = IrVolSwpnDao.getSwpnVol(bssd, irCrv.getKey());
 
 					log.info("SWAPNTION VOL: [ID: {}], [SIZE: {}]", irCrv.getKey(), swpnVolList.size());
@@ -1436,6 +1450,7 @@ public class Main {
 					double[] hwInitParam  = new double[] {hw1fInitAlpha, hw1fInitAlpha, hw1fInitSigma, hw1fInitSigma, hw1fInitSigma, hw1fInitSigma, hw1fInitSigma, hw1fInitSigma};
 //					double[] hwInitParam  = new double[] {0.03, 0.06, 0.007, 0.006, 0.005, 0.004, 0.005, 0.006};
 
+					// NSP (NonSplit ; 만기 구분없이 통째로 모수를 산출) 
 					Map<String, List<?>> irParamHw1fNonSplitMap = new TreeMap<String, List<?>>();
 					irParamHw1fNonSplitMap = Esg310_ParamHw1f.createParamHw1fNonSplitMap(bssd, irModelIdNsp, irCrv.getKey(), spotList, swpnVolList, hwInitParam, freq, errTol, hwAlphaPieceNonSplit, hwSigmaPiece);
 //					irParamHw1fNonSplitMap = Esg310_ParamHw1f.createParamHw1fNonSplitMap(bssd, irModelIdNsp, irCrv.getKey(), spotList, swpnVolList, hwInitParamNsp, freq, errTol, hwAlphaPieceNonSplit, hwSigmaPiece);
@@ -1447,6 +1462,7 @@ public class Main {
 						session.clear();
 					}
 
+					// SP (Splite ; 단기구간과 장기구간을 구분하여 모수를 산출 )
 					Map<String, List<?>> irParamHw1fSplitMap = new TreeMap<String, List<?>>();
 					irParamHw1fSplitMap = Esg310_ParamHw1f.createParamHw1fSplitMap(bssd, irModelIdSp, irCrv.getKey(), spotList, swpnVolList, hwInitParam, freq, errTol, hwAlphaPieceSplit, hwSigmaPiece);
 
@@ -1492,8 +1508,8 @@ public class Main {
 						continue;
 					}
 
-//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), 20);
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), 20);
 
 					log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);
 					if(tenorList.isEmpty()) {
@@ -1609,9 +1625,11 @@ public class Main {
 
 					log.info("[{}] has been Deleted in Job:[{}] [IR_CURVE_ID: {}, COUNT: {}]", Process.toPhysicalName(IrParamHwBiz.class.getSimpleName()), jobLog.getJobId(), irCrv.getKey(), delNum);
 
+					// 모수 평균기간 10년 (120M)
 					int hwAlphaAvgNum = -1 * Integer.parseInt(argInDBMap.getOrDefault("HW_ALPHA_AVG_NUM", "120").toString());
 					int hwSigmaAvgNum = -1 * Integer.parseInt(argInDBMap.getOrDefault("HW_SIGMA_AVG_NUM", "120").toString());
 
+					// 장기구간 : 스왑션 변동성이 시장에서 관찰되지 않는 기간 
 					String hwAlphaAvgMatCd = argInDBMap.getOrDefault("HW_ALPHA_AVG_MAT_CD", "M0240").trim().toUpperCase();
 					String hwSigmaAvgMatCd = argInDBMap.getOrDefault("HW_SIGMA_AVG_MAT_CD", "M0120").trim().toUpperCase();
 
@@ -1696,6 +1714,8 @@ public class Main {
 
 //							if(!biz.getKey().equals("KICS") || !swSce.getKey().equals(1)) continue;
 							log.info("[{}] BIZ: [{}], IR_CURVE_ID: [{}], IR_CURVE_SCE_NO: [{}]", jobLog.getJobId(), biz.getKey(), curveSwMap.getKey(), swSce.getKey());
+							
+							// hw1fResult 생성 
 							Map<String, List<?>> hw1fResult = Esg340_BizScenHw1f.createScenHw1f(bssd, biz.getKey(), irModelId, curveSwMap.getKey(), swSce.getKey(), biz.getValue(), modelMstMap, projectionYear);
 
 							@SuppressWarnings("unchecked")
@@ -2005,6 +2025,8 @@ public class Main {
 //							if(!curveSwMap.getKey().equals("1010000")) continue;
 
 							log.info("[{}] BIZ: [{}], IR_CURVE_ID: [{}], IR_CURVE_SCE_NO: [{}]", jobLog.getJobId(), biz.getKey(), curveSwMap.getKey(), swSce.getKey());
+							
+							// 마팅게일 테스트 (할인율, 수익률)
 							Map<String, List<?>> hw1fResult = Esg370_ValidScenHw1f.createValidInputHw1f(bssd, biz.getKey(), irModelId, curveSwMap.getKey(), swSce.getKey(), biz.getValue(), modelMstMap, projectionYear, targetDuration);
 
 							@SuppressWarnings("unchecked")
@@ -2264,8 +2286,9 @@ public class Main {
 
 						log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
-						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+//						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
 //						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp())));
+						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
 
 //						
 						iRateHisStBaseDate =  IrCurveSpotWeekDao.getIrCurveSpotWeekHisDate(bssd, irCrv.getKey(), weekDay)
@@ -2398,7 +2421,8 @@ public class Main {
 
 					log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
 
 					// TENOR FILTERING
 					tenorList.remove("M0003");
@@ -2521,7 +2545,8 @@ public class Main {
 
 						log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
-						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+//						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
 
 						tenorList.remove("M0003");
 						tenorList.remove("M0006");
@@ -2658,7 +2683,8 @@ public class Main {
 
 					log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
 
 					tenorList.remove("M0003");
 					tenorList.remove("M0006");
@@ -2785,7 +2811,8 @@ public class Main {
 
 						log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
-						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()));
+//						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()));
+						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
 					
 //						tenorList.remove("M0003");
 //						tenorList.remove("M0006");
@@ -2934,7 +2961,8 @@ public class Main {
 						log.info("AFNS Shock Spread (Cont) for [{}({}, {})]", irCrv.getKey(), irCrv.getValue().getIrCurveNm(), irCrv.getValue().getCurCd());
 
 //						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()), 20));
-						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()));
+//						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), StringUtil.objectToPrimitive(irCurveSwMap.get(irCrv.getKey()).getLlp()));
+						List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(),20));
 						
 
 						log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);

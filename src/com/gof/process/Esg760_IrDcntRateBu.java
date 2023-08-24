@@ -86,7 +86,8 @@ public class Esg760_IrDcntRateBu extends Process {
 	//				double pvtMult  = StringUtil.objectToPrimitive(swSce.getValue().getMultPvtRate()  , 0.0    );
 					double intMult  = StringUtil.objectToPrimitive(swSce.getMultIntRate()  , 1.0    );
 					double addSprd  = StringUtil.objectToPrimitive(swSce.getAddSprd()      , 0.0    );
-					int    llp      = StringUtil.objectToPrimitive(swSce.getLlp()          , 20     );
+//					int    llp      = StringUtil.objectToPrimitive(swSce.getLlp()          , 20     );
+					int    llp      = swSce.getLlp();
 
 	//				log.info("{}, {}, {}, {}, {}, {}, {}, {}, {}", applBizDv, curveSwMap.getKey(), detScen, pvtMatCd, pvtRate, pvtMult, intMult, addSprd, llp);
 					for(IrCurveSpot spot : spotSceList) {

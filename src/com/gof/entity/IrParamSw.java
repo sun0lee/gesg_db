@@ -9,6 +9,7 @@ import javax.persistence.Table;
 
 import com.gof.entity.his.HIrParamSw;
 import com.gof.interfaces.EntityIdentifier;
+import com.gof.util.StringUtil;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -71,6 +72,37 @@ public class IrParamSw implements Serializable, EntityIdentifier {
 		return ytmAddSprd;
 	}
 
+	// default 처리 
+	// TODO: FSS '24.03 llp : 20 -> 30 조정 예정.
+	public Integer getLlp() {
+		return llp = StringUtil.objectToPrimitive(llp, 20);
+	}
+//	public Integer getFreq() {
+//		return freq = StringUtil.objectToPrimitive(freq, 2) ;
+//	}
+//	public String getFwdMatCd() {
+//		return fwdMatCd = StringUtil.objectToPrimitive(fwdMatCd, "M0000");
+//	}
+//	public String getLiqPremApplDv() {
+//		return liqPremApplDv = StringUtil.objectToPrimitive(liqPremApplDv, "1");
+//	}
+//	public Double getSwAlphaYtm() {
+//		return swAlphaYtm = StringUtil.objectToPrimitive(swAlphaYtm, 0.1) ; 
+//	}		
+//	public Double getMultIntRate() {
+//		return multIntRate = StringUtil.objectToPrimitive(multIntRate,1.0);
+//	}
+//	public Double getAddSprd() {
+//		return addSprd =  StringUtil.objectToPrimitive(addSprd, 0.0);
+//	}
+//	public String getPvtRateMatCd() {
+//		return pvtRateMatCd = StringUtil.objectToPrimitive(pvtRateMatCd , "M0000");
+//	}
+//	public Double getMultPvtRate() {
+//		return multPvtRate = StringUtil.objectToPrimitive(multPvtRate , 1.0  );
+//	}
+	
+	
 	public static IrParamSw convertFrom(HIrParamSw from, String baseYymm, int seq) {
 		return builder()
 				.baseYymm(from.getBaseYymm())
