@@ -395,7 +395,7 @@ public class Main {
 //		jobList.add("110");
 //		jobList.add("120");
 //		jobList.add("130");
-//		jobList.add("150");
+		jobList.add("150"); // E_IR_CURVE_SPOT (BASE_TENOR)
 //		jobList.add("151");
 //		jobList.add("210");
 //		jobList.add("211");
@@ -403,18 +403,18 @@ public class Main {
 //		jobList.add("230");
 //		jobList.add("240");
 //		jobList.add("250");
-//		jobList.add("260");
-//		jobList.add("261");
-//		jobList.add("270");
+//		jobList.add("260"); // E_IR_DCNT_RATE_BU (BASE_TENOR)
+//		jobList.add("261"); // YTM ADD SPREAD 있는 경우 spot rate 재산출 
+//		jobList.add("270"); //E_IR_DCNT_RATE (FULL TENOR)
 //		jobList.add("271");
-//		jobList.add("280");
+//		jobList.add("280"); 
 //		jobList.add("310");
 //		jobList.add("320");
-//		jobList.add("330");
-		jobList.add("340"); // 확률론 시나리오 생성 
+//		jobList.add("330"); // E_IR_PARAM_HW_CALC-> E_IR_PARAM_HW_BIZ
+//		jobList.add("340"); // 확률론 시나리오 생성 E_IR_VALID_SCE_STO
 //		jobList.add("350"); // 확률론 수익률 생성 
-//		jobList.add("360");
-		jobList.add("370");	// martingale test
+//		jobList.add("360"); // 난수 적정
+//		jobList.add("370");	// martingale test
 //		jobList.add("710");
 //		jobList.add("720");
 //		jobList.add("711");
@@ -677,8 +677,10 @@ public class Main {
 
 						List<IrCurveSpot> rst = new ArrayList<IrCurveSpot>();
 
-						rst = Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv.getKey(), ytmRst.getValue(),
-								                                   irCurveSwMap.get(irCrv.getKey()).getSwAlphaYtm(), irCurveSwMap.get(irCrv.getKey()).getFreq());
+//						rst = Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv.getKey(), ytmRst.getValue(),
+//								                                   irCurveSwMap.get(irCrv.getKey()).getSwAlphaYtm(), irCurveSwMap.get(irCrv.getKey()).getFreq());
+						// 25.01.13 sy 수정 
+						rst = Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv.getKey(), ytmRst.getValue(),irCurveSwMap.get(irCrv.getKey()));
 
 						if(rst.isEmpty()) throw new Exception();
 						rst.forEach(s -> session.saveOrUpdate(s));
@@ -748,7 +750,8 @@ public class Main {
 
 						for(Map.Entry<String, List<IrCurveYtm>> ytmRst : ytmRstMap.entrySet()) {
 //							Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv, ytmRst.getValue()).forEach(s -> session.save(s));
-							Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv, ytmRst.getValue(), irCurveSwMap.get(irCrv).getSwAlphaYtm(), irCurveSwMap.get(irCrv).getFreq()).forEach(s -> session.save(s));
+//							Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv, ytmRst.getValue(), irCurveSwMap.get(irCrv).getSwAlphaYtm(), irCurveSwMap.get(irCrv).getFreq()).forEach(s -> session.save(s));
+							Esg150_YtmToSpotSw.createIrCurveSpot(ytmRst.getKey(), irCrv, ytmRst.getValue(), irCurveSwMap.get(irCrv)).forEach(s -> session.save(s));
 						}
 					}
 					session.flush();
