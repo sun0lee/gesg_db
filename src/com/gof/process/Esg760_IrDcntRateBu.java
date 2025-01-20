@@ -34,7 +34,9 @@ public class Esg760_IrDcntRateBu extends Process {
 			String irCurveId = curveSwMap.getKey();
 			
 //			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
-			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, irCurveId);
+			// 내부모형은 llp =20년을 요건으로 함. 
+//			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, irCurveId);
+			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, irCurveId,20);
 
 			TreeMap<String, Double> spotMap = spotList.stream().collect(Collectors.toMap(IrCurveSpot::getMatCd, IrCurveSpot::getSpotRate, (k, v) -> k, TreeMap::new));
 

@@ -391,14 +391,14 @@ public class Main {
 		}
 
 //		for local test
-		jobList.clear();
+//		jobList.clear();
 //		jobList.add("110");
 //		jobList.add("120");
 //		jobList.add("130");
-		jobList.add("150"); // E_IR_CURVE_SPOT (BASE_TENOR)
-//		jobList.add("151");
+//		jobList.add("150"); // E_IR_CURVE_SPOT (BASE_TENOR)
+////		jobList.add("151");
 //		jobList.add("210");
-//		jobList.add("211");
+////		jobList.add("211");
 //		jobList.add("220");
 //		jobList.add("230");
 //		jobList.add("240");
@@ -411,7 +411,7 @@ public class Main {
 //		jobList.add("310");
 //		jobList.add("320");
 //		jobList.add("330"); // E_IR_PARAM_HW_CALC-> E_IR_PARAM_HW_BIZ
-//		jobList.add("340"); // 확률론 시나리오 생성 E_IR_VALID_SCE_STO
+//		jobList.add("340"); // 확률론 시나리오 생성 E_IR_DCNT_SCE_STO_BIZ
 //		jobList.add("350"); // 확률론 수익률 생성 
 //		jobList.add("360"); // 난수 적정
 //		jobList.add("370");	// martingale test
@@ -1391,8 +1391,10 @@ public class Main {
 						log.warn("No Model Attribute of [{}] for [{}] in [{}] Table", irModelId, irCrv.getKey(), Process.toPhysicalName(IrParamModel.class.getSimpleName()));
 						continue;
 					}
-
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+					
+					// (2025.01.15) 25년 할인율 산출 적용기준 : LLP 20->23 년으로 조정 but 모수 산출시 관측기간은 20년을 기준으로 함. 
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(), 20));
 //					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), 20);
 					
 					log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);
@@ -1511,7 +1513,9 @@ public class Main {
 						continue;
 					}
 
-					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
+					// (2025.01.15) 25년 할인율 산출 적용기준 : LLP 20->23 년으로 조정 but 모수 산출시 관측기간은 20년을 기준으로 함. 
+					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), Math.min(irCurveSwMap.get(irCrv.getKey()).getLlp(), 20));
+//					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp());
 //					List<String> tenorList = IrCurveSpotDao.getIrCurveTenorList(bssd, irCrv.getKey(), 20);
 
 					log.info("TenorList in [{}]: ID: [{}], llp: [{}], matCd: {}", jobLog.getJobId(), irCrv.getKey(), irCurveSwMap.get(irCrv.getKey()).getLlp(), tenorList);

@@ -4,9 +4,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.gof.enums.EJob;
@@ -53,6 +54,21 @@ public class Esg770_ShkScen extends Process {
 			List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
 			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
 
+	        Map<String, Double> ytmMap = new HashMap<>();
+	        Map<String, Double> spotMap = new HashMap<>();
+	        
+	        for (IrCurveYtm ytm : ytmList) {
+	            String matCd = ytm.getMatCd() ; 
+	            double ytmRate = ytm.getYtm(); 
+	            ytmMap.put(matCd, ytmRate);
+	        }
+
+	        for (IrCurveSpot spot : spotList) {
+	            String matCd = spot.getMatCd();
+	            double spotRate = spot.getSpotRate(); 
+	            spotMap.put(matCd, spotRate);
+	        }
+	        
 			if (swSce != null) {
 
 			// �깮�꽦�빐�빞 �븯�뒗 寃곌낵�뒗 det, sto �떆�굹由ъ삤 �몮 �떎 �엳�쓬. ( irModel�뿉 �뵲�씪 �떖�씪吏� )
@@ -83,11 +99,12 @@ public class Esg770_ShkScen extends Process {
 					String matCd = ytmList.get(ytmList.size()-1).getMatCd();
 					int matMonths = Integer.parseInt(matCd.substring(1));
 
-					double ytm = ytmList.get(ytmList.size()-1).getYtm();
-					int ltfrTA = matMonths/12;
-					double spot = spotList.get(ytmList.size()-1).getSpotRate();
-					
-					
+							String maxMatCd = ytmMap.keySet().stream().max(Comparator.naturalOrder()).get();  
+							int ltfrTA = matMonths/12;
+							double ytm = ytmMap.get(maxMatCd);
+							double spot = spotMap.get(maxMatCd);
+		//					double ytm = ytmList.get(ytmList.size()-1).getYtm();
+		//					double spot = spotList.get(ytmList.size()-1).getSpotRate();
 
 					String tmpMatCd = curveSwMap.getKey().equals("1010000")? "M0240": "M0360";
 //					String tmpMatCd = curveSwMap.getKey().equals("1010000")? "M0240": "M0240";
@@ -107,7 +124,6 @@ public class Esg770_ShkScen extends Process {
 					swRslt = sw.getSmithWilsonResultList();
 				}
 
-			// 寃곌낵 �벐湲�
 				for(SmithWilsonRslt rslt : swRslt) {
 
 					IrDcntSceIm ir  = new IrDcntSceIm();
