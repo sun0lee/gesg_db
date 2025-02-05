@@ -133,19 +133,27 @@ public class Esg270_IrDcntRate extends Process {
 					
 					adjRateSce1Map = adjRateList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity(), (k, v) -> k, TreeMap::new));		
 					
-					List<IrCurveYtm> ytmList = IrDcntRateDao.getIrDcntRateBuToBaseSpotList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey()).stream().map(s -> s.convertSimpleYtm()).collect(Collectors.toList());					
+//					List<IrCurveYtm> ytmList = IrDcntRateDao.getIrDcntRateBuToBaseSpotList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey()).stream().map(s -> s.convertSimpleYtm()).collect(Collectors.toList());
+					List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
 					if(ytmList.size()==0) {
 						log.warn("No IR Dcnt Rate Data [BIZ: {}, IR_CURVE_ID: {}, IR_CURVE_SCE_NO: {}] in [{}] for [{}]", applBizDv, curveSwMap.getKey(), swSce.getKey(), toPhysicalName(IrDcntRateBu.class.getSimpleName()), bssd);
 						continue;
 					}
 					
-					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
-							 									 .baseDate(baseDate)					
-							 									 .ytmCurveHisList(ytmList)
-							 									 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
-							 									 .freq(0)
-							 									 .build();						
+//					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
+//							 									 .baseDate(baseDate)					
+//							 									 .ytmCurveHisList(ytmList)
+//							 									 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
+//							 									 .freq(0)
+//							 									 .build();						
 
+					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
+																 .baseDate(baseDate)					
+																 .ytmCurveHisList(ytmList)
+																 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
+																 .freq(StringUtil.objectToPrimitive(swSce.getValue().getFreq(), 2))
+																 .build();		
+					
 //				    swBts.getSmithWilsonResultList(prjTenor).stream().filter(s -> Double.parseDouble(s.getMatCd().substring(1, 5)) <= 240).forEach(s -> log.info("{}, {}, {}", s.getMatCd(), s.getSpotDisc(), s.getFwdDisc()));
 					baseRateSce1Map = swBts.getSmithWilsonResultList(prjTenor).stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
 
