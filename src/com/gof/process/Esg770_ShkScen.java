@@ -4,23 +4,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.gof.enums.EJob;
 import com.gof.dao.IrCurveSpotDao;
-import com.gof.dao.IrCurveYtmDao;
 import com.gof.dao.IrDcntRateDao;
 import com.gof.dao.IrSprdDao;
 import com.gof.entity.IrCurveSpot;
-import com.gof.entity.IrCurveYtm;
 import com.gof.entity.IrDcntRateBuIm;
 import com.gof.entity.IrDcntSceIm;
 import com.gof.entity.IrParamSw;
-import com.gof.entity.IrSprdAfnsCalc;
 import com.gof.model.SmithWilsonKics;
 import com.gof.model.entity.SmithWilsonRslt;
 import com.gof.util.DateUtil;
@@ -50,19 +45,11 @@ public class Esg770_ShkScen extends Process {
 			IrParamSw swSce = swMap.get(detScen);
 			LocalDate baseDate = DateUtil.convertFrom(bssd).with(TemporalAdjusters.lastDayOfMonth());
 
-			//�옄�궛 sw 蹂닿컙 紐⑹쟻 ltfr
-			List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
+			// 자산 sw 보간 목적 ltfr
 			List<IrCurveSpot> spotList = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
 
-	        Map<String, Double> ytmMap = new HashMap<>();
 	        Map<String, Double> spotMap = new HashMap<>();
 	        
-	        for (IrCurveYtm ytm : ytmList) {
-	            String matCd = ytm.getMatCd() ; 
-	            double ytmRate = ytm.getYtm(); 
-	            ytmMap.put(matCd, ytmRate);
-	        }
-
 	        for (IrCurveSpot spot : spotList) {
 	            String matCd = spot.getMatCd();
 	            double spotRate = spot.getSpotRate(); 
@@ -71,15 +58,13 @@ public class Esg770_ShkScen extends Process {
 	        
 			if (swSce != null) {
 
-			// �깮�꽦�빐�빞 �븯�뒗 寃곌낵�뒗 det, sto �떆�굹由ъ삤 �몮 �떎 �엳�쓬. ( irModel�뿉 �뵲�씪 �떖�씪吏� )
+				// 생성해야 하는 결과는 det, sto 시나리오 둘 다 있음. ( irModel에 따라 달라짐 )
 //			int scenCnt = 5 ;
 //			int scenCnt = Math.min(IrSprdDao.getIrSprdAfnsCalcScenCnt(bssd, irModelId, curveSwMap.getKey()),10);
 //			int scenCnt = IrSprdDao.getIrSprdAfnsCalcScenCnt(bssd, irModelId, curveSwMap.getKey());
 			long scenCnt = IrSprdDao.getIrSprdAfnsCalcAll(bssd, irModelId, curveSwMap.getKey()).stream().count();
 
 			for (int sceNo = 1; sceNo <= scenCnt; sceNo++) {
-				Map<String,Double> irSprdShkMap = IrSprdDao.getIrSprdAfnsCalcList(bssd, irModelId, curveSwMap.getKey(), sceNo).stream()
-								.collect(Collectors.toMap(IrSprdAfnsCalc::getMatCd, IrSprdAfnsCalc::getShkSprdCont));
 
 				List<IrCurveSpot> irDcntRateBuImList = IrDcntRateDao.getIrDcntRateBuImToAdjSpotList(bssd, applBizDv, irModelId, curveSwMap.getKey(), sceNo);
 				if(irDcntRateBuImList.size()==0) {
@@ -87,31 +72,18 @@ public class Esg770_ShkScen extends Process {
 					continue;
 				}
 
-				// sw 蹂닿컙/蹂댁쇅 check �뿰�냽蹂듬━�씠�쑉�쓣 媛��졇�솕�쑝誘�濡� CMPD_MTD_CONT
+				// sw 보간/보외 check 연속복리이율을 가져왔으므로 CMPD_MTD_CONT
 	//			SmithWilsonKics sw = new SmithWilsonKics(baseDate, irDcntRateBuImList, CMPD_MTD_CONT, true, swSce.getLtfr(), swSce.getLtfrCp(), projectionYear, 1, 100, DCB_MON_DIF);
 	//			List<SmithWilsonRslt> swRslt = sw.getSmithWilsonResultList();
 
-	//			�옄�궛, 遺�梨� 蹂닿컙
+				// 자산 할인율, 부채 할인율 모두 보간 
 				SmithWilsonKics sw ;
 				List<SmithWilsonRslt> swRslt;
 
 				if(applBizDv.endsWith("_A")) {
-					String matCd = ytmList.get(ytmList.size()-1).getMatCd();
-					int matMonths = Integer.parseInt(matCd.substring(1));
 
-							String maxMatCd = ytmMap.keySet().stream().max(Comparator.naturalOrder()).get();  
-							int ltfrTA = matMonths/12;
-							double ytm = ytmMap.get(maxMatCd);
-							double spot = spotMap.get(maxMatCd);
-		//					double ytm = ytmList.get(ytmList.size()-1).getYtm();
-		//					double spot = spotList.get(ytmList.size()-1).getSpotRate();
-
-					String tmpMatCd = curveSwMap.getKey().equals("1010000")? "M0240": "M0360";
-//					String tmpMatCd = curveSwMap.getKey().equals("1010000")? "M0240": "M0240";
-					double spread = irSprdShkMap.get(tmpMatCd);
-					double ltfrA = irDiscToCont(spot) + spread;
-					
-					
+							double spot = spotList.get(spotList.size()-1).getSpotRate();
+							double ltfrA = irDiscToCont(spot) ; 
 
 //					log.info("Job770 ASSET :  {},{},{},{},{},{},{},{}", sceNo, curveSwMap.getKey(), ltfrA, ltfrTA, ytm, spot, spread);
 
