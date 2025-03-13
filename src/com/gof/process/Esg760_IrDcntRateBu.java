@@ -45,23 +45,21 @@ public class Esg760_IrDcntRateBu extends Process {
 				continue;
 			}
 			
-			
-			
 			int detScen = 1 ;
 			Map<Integer, IrParamSw> swMap = curveSwMap.getValue();
 			IrParamSw swSce = swMap.get(detScen);
 
 			if (swSce != null) {
-						// 23.06.13 議곌굔�닔�젙. �궡遺�紐⑦삎�쓽 紐⑹쟻�쑝濡�, 異붽��쟻�쑝濡� paramSw�쓣 異붽�/�닔�젙/愿�由� �븯吏� �븡怨� 泥섎━�븷 �닔 �엳�룄濡� 湲곗〈 �꽕�젙�쓣 �궗�슜�븿.
-						// swSce �뿉�꽌 KICS �쓽 1踰� �떆�굹由ъ삤 �꽕�젙 �뜲�씠�꽣瑜� �궗�슜�븿.
-						// �떆�굹由ъ삤 媛��닔�뒗 det / sto瑜� 援щ텇�빐�꽌 媛곴컖 �젙�쓽�븿.
+				// 23.06.13 조건수정. 내부모형의 목적으로, 추가적으로 paramSw을 추가/수정/관리 하지 않고 처리할 수 있도록 기존 설정을 사용함.
+				// swSce 에서 KICS 의 1번 시나리오 설정 데이터를 사용함. 
+				// 시나리오 갯수는 det / sto를 구분해서 각각 정의함. 
 
-				// �쑀�룞�꽦 �봽由щ�몄뾼�� KICS�쓽 寃곗젙濡� �떆�굹由ъ삤 �깮�꽦�떆 �궗�슜�븯�뒗 �닔以��쓣 �궗�슜�븿.
+				// 유동성 프리미엄은 KICS의 결정론 시나리오 생성시 사용하는 수준을 사용함. 
 //					Map<String, Double> irSprdLpMap = IrSprdDao.getIrSprdLpBizList(bssd, applBizDv, curveSwMap.getKey(), detScen).stream()
 					Map<String, Double> irSprdLpMap = IrSprdDao.getIrSprdLpBizList(bssd, "KICS", curveSwMap.getKey(), detScen).stream()
 							                                   .collect(Collectors.toMap(IrSprdLpBiz::getMatCd, IrSprdLpBiz::getLiqPrem));
 
-					// �깮�꽦�빐�빞 �븯�뒗 寃곌낵�뒗 det, sto �떆�굹由ъ삤 �몮 �떎 �엳�쓬. ( irModel�뿉 �뵲�씪 �떖�씪吏� )
+					// 생성해야 하는 결과는 det, sto 시나리오 둘 다 있음. ( irModel에 따라 달라짐 )
 //					int scenCnt = IrSprdDao.getIrSprdAfnsCalcScenCnt(bssd, irModelId, curveSwMap.getKey());
 					long scenCnt = IrSprdDao.getIrSprdAfnsCalcAll(bssd, irModelId, curveSwMap.getKey()).stream().count();
 					log.info("IrCruveId, Sce No : {}, {}", curveSwMap.getKey(), scenCnt);
@@ -109,11 +107,11 @@ public class Esg760_IrDcntRateBu extends Process {
 //							double adjSpotDisc  = spotDisc + lpDisc;
 //							double adjSpotCont  = irDiscToCont(adjSpotDisc);
 
-							// 議곗젙 諛섏쁺 �쟾 �썑 鍮꾧탳瑜� �쐞�빐 湲곗〈 肄붾뱶�뿉�꽌 �닔�젙�븿.
-							double spotCont     = baseSpotCont ; // 議곗젙 諛섏쁺 �쟾
-							double spotDisc     = irContToDisc(spotCont);	// 議곗젙 諛섏쁺 �쟾
-							double adjSpotDisc  = spotDisc + lpDisc; // �쑀�룞�꽦 �봽由щ�몄뾼 諛섏쁺
-							double adjSpotCont  = irDiscToCont(adjSpotDisc) + shkCont; 	// �쑀�룞�꽦 �봽由щ�몄뾼 + shock 諛섏쁺
+							// 조정 반영 전 후 비교를 위해 기존 코드에서 수정함.
+							double spotCont     = baseSpotCont ; // 조정 반영 전
+							double spotDisc     = irContToDisc(spotCont);	// 조정 반영 전 	
+							double adjSpotDisc  = spotDisc + lpDisc; // 유동성 프리미엄 반영 
+							double adjSpotCont  = irDiscToCont(adjSpotDisc) + shkCont; 	// 유동성 프리미엄 + shock 반영
 
 							dcntRateBuIm.setBaseYymm(bssd);
 							dcntRateBuIm.setApplBizDv(applBizDv);
