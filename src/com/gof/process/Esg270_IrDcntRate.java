@@ -128,8 +128,9 @@ public class Esg270_IrDcntRate extends Process {
 						rslt.setFwdRate (baseRateSce1Map.get(rslt.getMatCd()).getFwdDisc());
 					}					
 				}
-//				else if(!applBizDv.equals("KICS") && swSce.getKey().equals(1)) {
-				else if(!applBizDv.equals("KICS")) {
+				// 2025-03-31 SY KICS가 아닌 프로세스에서도  AFNS shock을 적용하는 경우
+				else if(!applBizDv.equals("KICS") && swSce.getKey().equals(1)) {
+//				else if(!applBizDv.equals("KICS")) {
 					
 					adjRateSce1Map = adjRateList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity(), (k, v) -> k, TreeMap::new));		
 					
