@@ -145,99 +145,138 @@ public class SmithWilsonKics extends IrModel {
 		}
 	}
 
-
 	private void smithWilsonAlphaFinding() {
+		for (int i = 0; i < this.alphaItrNum; i++) {
+			initAlpha(i);
+			updateZetaAndKappa(this.alphaApplied);
 
-		for(int i=0; i<this.alphaItrNum; i++) {
-
-			if(i==0) {
-				this.alphaApplied  = 0.0001;
-				this.alphaDApplied = (1.0 - 0.0001) / 4.0;
+			if (i == 0) {
+				if (isConverged(this.alphaFwd)) break;
+			} else {
+				adjustAlpha(this.alphaFwd);
 			}
-			if(i==1) {
-				this.alphaApplied  = (1.0 + 0.0001) / 2.0;
-			}
-
-			RealMatrix tenorCol = MatrixUtils.createColumnRealMatrix(this.tenorYearFrac);
-			RealMatrix weight   = MatrixUtils.createRealMatrix(smithWilsonWeight(this.tenorYearFrac, this.tenorYearFrac, this.alphaApplied, this.ltfrCont));
-			RealMatrix invWeight = MatrixUtils.inverse(weight);
-
-//			if(i == 0) log.info("weight: {}, {}, {}, {}", this.tenorYearFrac, alpha, this.ltfrCont, weight);
-
-			double[] pVal = new double[this.tenorYearFrac.length];
-			double[] mean = new double[this.tenorYearFrac.length];
-			double[] loss = new double[this.tenorYearFrac.length];
-			double[] sinh = new double[this.tenorYearFrac.length];
-
-			for(int j=0; j<loss.length; j++) {
-				pVal[j] = zeroBondUnitPrice(this.iRateBase[j], this.tenorYearFrac[j]);
-				mean[j] = zeroBondUnitPrice(this.ltfrCont, this.tenorYearFrac[j]);
-				loss[j] = smithWilsonLoss(this.iRateBase[j], this.tenorYearFrac[j], this.ltfrCont);
-				sinh[j] = Math.sinh(this.alphaApplied * this.tenorYearFrac[j]);
-			}
-
-			RealMatrix lossCol = MatrixUtils.createColumnRealMatrix(loss);
-			RealMatrix zetaCol = invWeight.multiply(lossCol);
-			RealMatrix sinhCol = MatrixUtils.createColumnRealMatrix(sinh);
-			RealMatrix qMatDiag = MatrixUtils.createRealDiagonalMatrix(mean);
-
-			double kappaNum = tenorCol.transpose().multiply(qMatDiag).multiply(zetaCol).scalarMultiply(this.alphaApplied).scalarAdd(1.0).getEntry(0,0);
-			double kappaDenom = sinhCol.transpose().multiply(qMatDiag).multiply(zetaCol).getEntry(0,0);
-			this.kappaApplied = kappaNum / (Math.abs(kappaDenom) < ZERO_DOUBLE ? 1.0 : kappaDenom);
-
-			this.alphaPp  = Math.exp(-this.ltfrCont * this.ltfrT) * (kappaNum - Math.exp(-this.alphaApplied * this.ltfrT) * kappaDenom);
-			this.alphaDpp = -this.ltfrCont * this.alphaPp + Math.exp(-this.ltfrCont * this.ltfrT) * this.alphaApplied * Math.exp(-this.alphaApplied * this.ltfrT) * kappaDenom;
-			this.alphaFwd = -1 / this.alphaPp * this.alphaDpp;
-
-			this.zetaColumn = zetaCol;
-	
-			
-			if(i==0) {
-				
-				if(Math.abs(Math.exp(this.ltfrCont) - Math.exp(this.alphaFwd)) < ltfrEpsilon) {
-					break;
-				}
-				// 23.07.21 여기도 불필요.
-//				else if(this.alphaFwd > this.ltfrCont) {
-//					this.alphaFwdT = Math.log(Math.exp(this.ltfrCont) + ltfrEpsilon);
-//				}
-//				else {
-//					this.alphaFwdT = Math.log(Math.exp(this.ltfrCont) - ltfrEpsilon);
-//				}
-			}
-			else {
-				
-				// 23.07.20 수렴조건 수정 기존로직 주석처리  test
-//				if(this.alphaFwdT < this.ltfrCont) {
-//					if(this.alphaFwd < this.alphaFwdT) {
-//						this.alphaApplied = this.alphaApplied + this.alphaDApplied;
-//					}
-//					else {
-//						this.alphaApplied = this.alphaApplied - this.alphaDApplied;
-//					}
-//				}
-//				else {
-//					if(this.alphaFwd < this.alphaFwdT) {
-//						this.alphaApplied = this.alphaApplied - this.alphaDApplied;
-//					}
-//					else {
-//						this.alphaApplied = this.alphaApplied + this.alphaDApplied;
-//					}
-//				}
-				// 23.07.20 수렴조건 수정 : FSS 수렴조건체크와 동일하도록 수정.
-				if(Math.abs(Math.exp(this.alphaFwd) - Math.exp(this.ltfrCont)) > ltfrEpsilon) {
-					this.alphaApplied = this.alphaApplied + this.alphaDApplied;
-				}
-				else {
-					this.alphaApplied = this.alphaApplied - this.alphaDApplied;
-				}
-				
-				this.alphaDApplied *= 0.5;
-			}
-			
-//			if(i<30) log.info("2nd ITR: {}, ALPHA: {}, ALPHA_D: {}", i+1, this.alphaApplied, this.alphaDApplied);
 		}
 	}
+
+	private void initAlpha(int iteration) {
+		if (iteration == 0) {
+			this.alphaApplied = 0.001;
+			this.alphaDApplied = (1.0 - 0.0001) / 4.0;
+		} else if (iteration == 1) {
+			this.alphaApplied = (1.0 + 0.0001) / 2.0;
+		}
+	}
+
+	private void updateZetaAndKappa(double alpha) {
+		RealMatrix tenorCol = MatrixUtils.createColumnRealMatrix(this.tenorYearFrac);
+		RealMatrix weight = MatrixUtils.createRealMatrix(
+			smithWilsonWeight(this.tenorYearFrac, this.tenorYearFrac, alpha, this.ltfrCont)
+		);
+		RealMatrix invWeight = MatrixUtils.inverse(weight);
+
+		double[] pVal = new double[this.tenorYearFrac.length];
+		double[] mean = new double[this.tenorYearFrac.length];
+		double[] loss = new double[this.tenorYearFrac.length];
+		double[] sinh = new double[this.tenorYearFrac.length];
+
+		for (int j = 0; j < this.tenorYearFrac.length; j++) {
+			pVal[j] = zeroBondUnitPrice(this.iRateBase[j], this.tenorYearFrac[j]);
+			mean[j] = zeroBondUnitPrice(this.ltfrCont, this.tenorYearFrac[j]);
+			loss[j] = smithWilsonLoss(this.iRateBase[j], this.tenorYearFrac[j], this.ltfrCont);
+			sinh[j] = Math.sinh(alpha * this.tenorYearFrac[j]);
+		}
+
+		RealMatrix lossCol = MatrixUtils.createColumnRealMatrix(loss);
+		RealMatrix zetaCol = invWeight.multiply(lossCol);
+		RealMatrix sinhCol = MatrixUtils.createColumnRealMatrix(sinh);
+		RealMatrix qMatDiag = MatrixUtils.createRealDiagonalMatrix(mean);
+
+		double kappaNum = tenorCol.transpose().multiply(qMatDiag).multiply(zetaCol).scalarMultiply(alpha).scalarAdd(1.0).getEntry(0, 0);
+		double kappaDenom = sinhCol.transpose().multiply(qMatDiag).multiply(zetaCol).getEntry(0, 0);
+
+		this.kappaApplied = kappaNum / (Math.abs(kappaDenom) < ZERO_DOUBLE ? 1.0 : kappaDenom);
+		this.alphaPp = Math.exp(-this.ltfrCont * this.ltfrT)* (kappaNum - Math.exp(-alpha * this.ltfrT) * kappaDenom);
+		this.alphaDpp = -this.ltfrCont * this.alphaPp+ Math.exp(-this.ltfrCont * this.ltfrT)* alpha * Math.exp(-alpha * this.ltfrT) * kappaDenom;
+		this.alphaFwd = -1.0 / this.alphaPp * this.alphaDpp;
+		this.zetaColumn = zetaCol;
+	}
+
+	private boolean isConverged(double alphaFwd) {
+		return Math.abs(Math.exp(this.ltfrCont) - Math.exp(alphaFwd)) < ltfrEpsilon;
+	}
+
+	private void adjustAlpha(double alphaFwd) {
+		if (Math.abs(Math.exp(alphaFwd) - Math.exp(this.ltfrCont)) > ltfrEpsilon) {
+			this.alphaApplied += this.alphaDApplied;
+		} else {
+			this.alphaApplied -= this.alphaDApplied;
+		}
+		this.alphaDApplied *= 0.5;
+	}
+	
+//	private void smithWilsonAlphaFinding() {
+//
+//		for(int i=0; i<this.alphaItrNum; i++) {
+//
+//			if(i==0) {
+//				this.alphaApplied  = 0.0001;
+//				this.alphaDApplied = (1.0 - 0.0001) / 4.0;
+//			}
+//			if(i==1) {
+//				this.alphaApplied  = (1.0 + 0.0001) / 2.0;
+//			}
+//
+//			RealMatrix tenorCol = MatrixUtils.createColumnRealMatrix(this.tenorYearFrac);
+//			RealMatrix weight   = MatrixUtils.createRealMatrix(smithWilsonWeight(this.tenorYearFrac, this.tenorYearFrac, this.alphaApplied, this.ltfrCont));
+//			RealMatrix invWeight = MatrixUtils.inverse(weight);
+//
+//			double[] pVal = new double[this.tenorYearFrac.length];
+//			double[] mean = new double[this.tenorYearFrac.length];
+//			double[] loss = new double[this.tenorYearFrac.length];
+//			double[] sinh = new double[this.tenorYearFrac.length];
+//
+//			for(int j=0; j<loss.length; j++) {
+//				pVal[j] = zeroBondUnitPrice(this.iRateBase[j], this.tenorYearFrac[j]);
+//				mean[j] = zeroBondUnitPrice(this.ltfrCont, this.tenorYearFrac[j]);
+//				loss[j] = smithWilsonLoss(this.iRateBase[j], this.tenorYearFrac[j], this.ltfrCont);
+//				sinh[j] = Math.sinh(this.alphaApplied * this.tenorYearFrac[j]);
+//			}
+//
+//			RealMatrix lossCol = MatrixUtils.createColumnRealMatrix(loss);
+//			RealMatrix zetaCol = invWeight.multiply(lossCol);
+//			RealMatrix sinhCol = MatrixUtils.createColumnRealMatrix(sinh);
+//			RealMatrix qMatDiag = MatrixUtils.createRealDiagonalMatrix(mean);
+//
+//			double kappaNum = tenorCol.transpose().multiply(qMatDiag).multiply(zetaCol).scalarMultiply(this.alphaApplied).scalarAdd(1.0).getEntry(0,0);
+//			double kappaDenom = sinhCol.transpose().multiply(qMatDiag).multiply(zetaCol).getEntry(0,0);
+//			this.kappaApplied = kappaNum / (Math.abs(kappaDenom) < ZERO_DOUBLE ? 1.0 : kappaDenom);
+//
+//			this.alphaPp  = Math.exp(-this.ltfrCont * this.ltfrT) * (kappaNum - Math.exp(-this.alphaApplied * this.ltfrT) * kappaDenom);
+//			this.alphaDpp = -this.ltfrCont * this.alphaPp + Math.exp(-this.ltfrCont * this.ltfrT) * this.alphaApplied * Math.exp(-this.alphaApplied * this.ltfrT) * kappaDenom;
+//			this.alphaFwd = -1 / this.alphaPp * this.alphaDpp;
+//
+//			this.zetaColumn = zetaCol;
+//	
+//			
+//			if(i==0) {
+//				
+//				if(Math.abs(Math.exp(this.ltfrCont) - Math.exp(this.alphaFwd)) < ltfrEpsilon) {
+//					break;
+//				}
+//			}
+//			else {
+//				if(Math.abs(Math.exp(this.alphaFwd) - Math.exp(this.ltfrCont)) > ltfrEpsilon) {
+//					this.alphaApplied = this.alphaApplied + this.alphaDApplied;
+//				}
+//				else {
+//					this.alphaApplied = this.alphaApplied - this.alphaDApplied;
+//				}
+//				
+//				this.alphaDApplied *= 0.5;
+//			}
+//			
+//		}
+//	}
 
 
 	//TODO:
