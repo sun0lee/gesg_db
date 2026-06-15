@@ -960,6 +960,9 @@ public class Main {
 					irShockSenario = Esg220_ShkSprdAfns.createAfnsShockScenario(FinUtils.toEndOfMonth(bssd), irModelId, curveHisList, curveBaseList, tenorList, dt, sigmaInit
 													                          , irCurveSwMap.get(irCrv.getKey()).getLtfr()
 														                      , irCurveSwMap.get(irCrv.getKey()).getLtfrCp()
+//													                          , irCurveSwMap.get(irCrv.getKey()).getLtfr()
+//														                      , irCurveSwMap.get(irCrv.getKey()).getLtfrCp()
+																			  , irCurveSwMap.get(irCrv.getKey())
 														                      , projectionYear
 														                      , errorTolerance
 														                      , kalmanItrMax

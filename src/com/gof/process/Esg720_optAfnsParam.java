@@ -32,9 +32,9 @@ public class Esg720_optAfnsParam extends Process {
 		Map<String, List<IrParamAfnsCalc>>  resultMap  = new TreeMap<String, List<IrParamAfnsCalc>>();
 		List<IrParamAfnsCalc> irOptParam    = new ArrayList<IrParamAfnsCalc>();
 
-
+//		TODO : 내부모형의 llp 참조여부 결정 필요 default :20 
 		AFNelsonSiegel afns = new AFNelsonSiegel(IrModel.stringToDate(bssd), mode, null, curveHisList, curveBaseList,
-                true, 'D', dt, initSigma, DCB_MON_DIF, ltfr, 0, (int) ltfrT, 0.0, 1.0 / 12,
+                true, 'D', dt, initSigma, DCB_MON_DIF, ltfr, 0, (int) ltfrT,20,  0.0, 1.0 / 12,
                 0.05, 2.0, 3, prjYear, errorTolerance, itrMax, confInterval, epsilon);
 
 

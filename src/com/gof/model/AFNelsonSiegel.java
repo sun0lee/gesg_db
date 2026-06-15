@@ -3,6 +3,7 @@ package com.gof.model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,7 @@ public class AFNelsonSiegel extends IrModel {
 	protected double        ltfrL;
 	protected double        ltfrA;
 	protected int           ltfrT;
+	protected int           llp ;
 	protected double        liqPrem;
 	protected double        term;
 	protected double        minLambda;
@@ -105,55 +107,59 @@ public class AFNelsonSiegel extends IrModel {
 	protected int           randomGenType = 1;
 	protected int           seedNum = 470 ;
 	protected double[][]    randNum; // [number of factors][this.scenNum]
-
 	protected List<IrDcntSceDetBiz> rsltList = new ArrayList<IrDcntSceDetBiz>();
 
+	// 26.06.08 충격 테너 분리. 
+	protected double[] shockTenor;
 
-	public AFNelsonSiegel(LocalDate baseDate, List<IrCurveSpot> iRateHisList, List<IrCurveSpot> iRateBaseList, double dt, double initSigma) {
-		this(baseDate, "AFNS", null, iRateHisList, iRateBaseList, false       , CMPD_MTD_DISC, dt, initSigma, DCB_MON_DIF, 0.045, 0.045, 60  , 0.0032  , 1.0/12, 0.05, 2.0, 3, 140    , 1e-10, 100, 0.995, 0.001);
-	}
+	
+//	public AFNelsonSiegel(LocalDate baseDate, List<IrCurveSpot> iRateHisList, List<IrCurveSpot> iRateBaseList, double dt, double initSigma) {
+//		this(baseDate, "AFNS", null, iRateHisList, iRateBaseList, false       , CMPD_MTD_DISC, dt, initSigma, DCB_MON_DIF, 0.045, 0.045, 60  , 0.0032  , 1.0/12, 0.05, 2.0, 3, 140    , 1e-10, 100, 0.995, 0.001);
+//	}
 
-	public AFNelsonSiegel(LocalDate baseDate, String mode, List<IrCurveSpot> iRateHisList, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma,
-			              double ltfrL, double ltfrA, int ltfrT, double liqPrem, int prjYear) {
-		this(baseDate, mode  , null, iRateHisList, iRateBaseList, isRealNumber, cmpdType     , dt, initSigma, DCB_MON_DIF, ltfrL, ltfrA, ltfrT, liqPrem, 1.0/12, 0.05, 2.0, 3, prjYear, 1e-10, 100, 0.995, 0.001);
-	}
-
-	public AFNelsonSiegel(LocalDate baseDate, String mode, List<IrParamAfnsBiz> inputParas, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma, int dayCountBasis,
-						  double ltfrL, double ltfrA, int ltfrT, double liqPrem, double term, double minLambda, double maxLambda, int nf, int prjYear, double accuracy, int itrMax, double confInterval, double epsilon) {
-
-		this.baseDate      = baseDate;
-		this.mode          = mode;
-		setTermStructureBase(iRateBaseList);
-		setAfnsParamList(inputParas);
-		//TODO: iRateBaseList 媛� null�엫�쓣 怨좊젮�빐�빞�븿. dummy愿��젏�뿉�꽌�씪�룄 irateBaseList�뒗 null�쓣 �븞�꽔�뒗寃� 醫뗭쓣�벏
-		this.irCurveId     = iRateBaseList.get(0).getIrCurveId();
-		this.isRealNumber  = isRealNumber;
-		this.cmpdType      = cmpdType;
-		this.dt            = dt;
-		this.initSigma     = initSigma;
-		this.dayCountBasis = dayCountBasis;
-		this.ltfrL         = ltfrL;
-		this.ltfrA         = ltfrA;
-		this.ltfrT         = ltfrT;
-		this.liqPrem       = liqPrem;
-		this.term          = term;
-		this.minLambda     = minLambda;
-		this.maxLambda     = maxLambda;
-		this.nf            = nf;
-		this.prjYear       = prjYear;
-		this.accuracy      = accuracy;
-		this.itrMax        = itrMax;
-		this.confInterval  = confInterval;
-		this.epsilon       = epsilon;
-
-		for(int j=0; j<this.iRateBase.length; j++) {
-			this.iRateBase[j] = (this.cmpdType == CMPD_MTD_DISC) ? irDiscToCont((this.isRealNumber ? 1 : 0.01) * this.iRateBase[j]) : (this.isRealNumber ? 1 : 0.01) * this.iRateBase[j];
-		}
-	}
+//	public AFNelsonSiegel(LocalDate baseDate, String mode, List<IrCurveSpot> iRateHisList, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma,
+//			              double ltfrL, double ltfrA, int ltfrT, int llp ,double liqPrem, int prjYear) {
+//		this(baseDate, mode  , null, iRateHisList, iRateBaseList, isRealNumber, cmpdType     , dt, initSigma, DCB_MON_DIF, ltfrL, ltfrA, ltfrT,20, liqPrem, 1.0/12, 0.05, 2.0, 3, prjYear, 1e-10, 100, 0.995, 0.001);
+//	}
 
 
+//	public AFNelsonSiegel(LocalDate baseDate, String mode, List<IrParamAfnsBiz> inputParas, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma, int dayCountBasis,
+//						  double ltfrL, double ltfrA, int ltfrT ,double liqPrem, double term, double minLambda, double maxLambda, int nf, int prjYear, double accuracy, int itrMax, double confInterval, double epsilon) {
+//
+//		this.baseDate      = baseDate;
+//		this.mode          = mode;
+//		setTermStructureBase(iRateBaseList);
+//		setAfnsParamList(inputParas);
+//		//TODO: iRateBaseList 媛� null�엫�쓣 怨좊젮�빐�빞�븿. dummy愿��젏�뿉�꽌�씪�룄 irateBaseList�뒗 null�쓣 �븞�꽔�뒗寃� 醫뗭쓣�벏
+//		this.irCurveId     = iRateBaseList.get(0).getIrCurveId();
+//		this.isRealNumber  = isRealNumber;
+//		this.cmpdType      = cmpdType;
+//		this.dt            = dt;
+//		this.initSigma     = initSigma;
+//		this.dayCountBasis = dayCountBasis;
+//		this.ltfrL         = ltfrL;
+//		this.ltfrA         = ltfrA;
+//		this.ltfrT         = ltfrT;
+//		this.liqPrem       = liqPrem;
+//		this.term          = term;
+//		this.minLambda     = minLambda;
+//		this.maxLambda     = maxLambda;
+//		this.nf            = nf;
+//		this.prjYear       = prjYear;
+//		this.accuracy      = accuracy;
+//		this.itrMax        = itrMax;
+//		this.confInterval  = confInterval;
+//		this.epsilon       = epsilon;
+//
+//		for(int j=0; j<this.iRateBase.length; j++) {
+//			this.iRateBase[j] = (this.cmpdType == CMPD_MTD_DISC) ? irDiscToCont((this.isRealNumber ? 1 : 0.01) * this.iRateBase[j]) : (this.isRealNumber ? 1 : 0.01) * this.iRateBase[j];
+//		}
+//	}
+
+
+	// 26.06.08 llp 추가 
 	public AFNelsonSiegel(LocalDate baseDate, String mode, double[] inputParas, List<IrCurveSpot> iRateHisList, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma, int dayCountBasis,
-		                  double ltfrL, double ltfrA, int ltfrT, double liqPrem, double term, double minLambda, double maxLambda, int nf, int prjYear, double accuracy, int itrMax, double confInterval, double epsilon) {
+		                  double ltfrL, double ltfrA, int ltfrT, int llp, double liqPrem, double term, double minLambda, double maxLambda, int nf, int prjYear, double accuracy, int itrMax, double confInterval, double epsilon) {
 
 		this.baseDate      = baseDate;
 		this.mode          = mode;
@@ -167,6 +173,7 @@ public class AFNelsonSiegel extends IrModel {
 		this.ltfrL         = ltfrL;
 		this.ltfrA         = ltfrA;
 		this.ltfrT         = ltfrT;
+		this.llp           = llp;
 		this.liqPrem       = liqPrem;
 		this.term          = term;
 		this.minLambda     = minLambda;
@@ -394,7 +401,7 @@ public class AFNelsonSiegel extends IrModel {
 		return paramList;
 	}
 
-
+// 26.06.08 shockTenor 조정 
 	public List<IrSprdAfnsCalc> getAfnsShockList() {
 
 		List<IrSprdAfnsCalc> shockList = new ArrayList<IrSprdAfnsCalc>();
@@ -411,7 +418,8 @@ public class AFNelsonSiegel extends IrModel {
 //					shock.setIrCurveSceNo(this.IntShockName[i]);
 //					shock.setIrCurveSceNo(Integer.valueOf(this.IntShockName[i]));
 					shock.setIrCurveSceNo(Integer.valueOf(i+1));
-					shock.setMatCd(String.format("%s%04d", 'M', (int) round(this.tenor[j] * MONTH_IN_YEAR, 0)));
+//					shock.setMatCd(String.format("%s%04d", 'M', (int) round(this.tenor[j] * MONTH_IN_YEAR, 0)));
+					shock.setMatCd(String.format("%s%04d", 'M', (int) round(shockTenor[j] * MONTH_IN_YEAR, 0)));
 					//shock.setMatCd(String.valueOf((int) round(this.tenor[j] * MONTH_IN_YEAR, 0) ));
 					shock.setShkSprdCont(this.IntShock.get(j,i));
 					shock.setLastModifiedBy("GESG_" + this.getClass().getSimpleName());
@@ -425,7 +433,7 @@ public class AFNelsonSiegel extends IrModel {
 
 // �옉�뾽 遺꾨━ 23.05.30
 
-	// 1. Initializing AFNS Parameter
+	//  1. Initializing AFNS Parameter
 	public void getinitialAfnsParas() {
 		if(!this.optParasFlag) {
 
@@ -433,7 +441,7 @@ public class AFNelsonSiegel extends IrModel {
 		}
 	}
 
-	// 2. afns 紐⑥닔 理쒖쟻�솕
+	// 2. afns 모수 최적화
 	public void optimizationParas(List<IrParamAfnsCalc> initParam) {
 		if(!this.optParasFlag) {
 			if(initParam.size()> 0) {
@@ -443,7 +451,7 @@ public class AFNelsonSiegel extends IrModel {
 			}
 			
 //			initParam.forEach(s-> log.info("Init Param : {}", s.toString()));
-			// Determine this.initParas �궗�슜�옄 �엯�젰媛믪쓣 諛쏆쓣吏� �궛異쒕맂 珥덇린紐⑥닔瑜� �궗�슜�븷吏�
+			// Determine this.initParas 사용자 입력값을 받을지 산출된 초기모수를 사용할지 
 			if(this.inputParas != null) this.initParas = this.inputParas;
 
 
@@ -452,15 +460,15 @@ public class AFNelsonSiegel extends IrModel {
 		}
 	}
 
-	// 3. afns 異⑷꺽�떆�굹由ъ삤 �깮�꽦
+	//  3. afns 충격시나리오 생성
 	public void genAfnsShock(List<IrParamAfnsCalc> inOptParam, List<IrParamAfnsCalc> inOptLsc) {
 
-//		// 理쒖쟻�솕�맂 紐⑥닔 �씫�뼱�삩 媛� �떞湲�
+		// 최적화된 모수 읽어온 값 담기 
 		this.optParas = inOptParam.stream()
 			    .mapToDouble(param -> param.getParamVal())
 			    .toArray();
 
-        // L,S,C �떞湲�
+		 // L,S,C 담기 
         this.optLSC = inOptLsc.stream()
         	    .mapToDouble(param -> param.getParamVal())
         	    .toArray();
@@ -470,16 +478,16 @@ public class AFNelsonSiegel extends IrModel {
 		afnsShockGenerating();
 	}
 
-	// 4. afns 異⑷꺽�떆�굹由ъ삤 (1000媛�) �깮�꽦_TVOG �궛異쒖슜
+	// 4. afns 충격시나리오 (1000개) 생성_TVOG 산출용 
 	public void genAfnsStoShock(List<IrParamAfnsCalc> inOptParam, List<IrParamAfnsCalc> inOptLsc) {
 
 
-//		// 理쒖쟻�솕�맂 紐⑥닔 �씫�뼱�삩 媛� �떞湲�
+//		// 최적화된 모수 읽어온 값 담기 
 		this.optParas = inOptParam.stream()
 			    .mapToDouble(param -> param.getParamVal())
 			    .toArray();
 
-        // L,S,C �떞湲�
+		 // L,S,C 담기 
         this.optLSC = inOptLsc.stream()
         	    .mapToDouble(param -> param.getParamVal())
         	    .toArray();
@@ -564,11 +572,11 @@ public class AFNelsonSiegel extends IrModel {
 		double toRealScale = this.isRealNumber ? 1 : 0.01;
 
 		for(int i=0; i<this.iRateHis.length; i++) {
-			log.info("Ir Rate Convert: {}, {}, {}, {}, {}", i, this.iRateDateHis[i], this.iRateHis[i][0], this.iRateHis[i][1], this.iRateHis[i][2],this.iRateHis[i][3]);
+//			log.info("Ir Rate Convert: {}, {}, {}, {}, {}", i, this.iRateDateHis[i], this.iRateHis[i][0], this.iRateHis[i][1], this.iRateHis[i][2],this.iRateHis[i][3]);
 			for(int j=0; j<this.iRateHis[i].length; j++) {
 				this.iRateHis[i][j] = (this.cmpdType == CMPD_MTD_DISC) ? irDiscToCont(toRealScale*this.iRateHis[i][j]) : toRealScale*this.iRateHis[i][j];
 			}
-			log.info("Ir Rate Convert2 : {}, {}, {}, {}, {}",i,  this.iRateDateHis[i], this.iRateHis[i][0], this.iRateHis[i][1], this.iRateHis[i][2],this.iRateHis[i][3]);
+//			log.info("Ir Rate Convert2 : {}, {}, {}, {}, {}",i,  this.iRateDateHis[i], this.iRateHis[i][0], this.iRateHis[i][1], this.iRateHis[i][2],this.iRateHis[i][3]);
 		}
 
 		for(int j=0; j<this.iRateBase.length; j++) {
@@ -939,6 +947,7 @@ public class AFNelsonSiegel extends IrModel {
 		return(paraCon);
 	}
 
+	
 
 	private void afnsShockGenerating() {
 
@@ -950,7 +959,11 @@ public class AFNelsonSiegel extends IrModel {
 
 
 		// AFNS factor loading matrix based on LLP weight
+		// TODO : 26.06.08 : 금감원 제공 시나리오결과와 비교하여, Shock Tenor 확장 시에도 충격계수 산출 로직 유지. 
+		// 가중치 행렬(W), 공분산 행렬(V) PCA 기반 충격계수 산출은 기존과 동일하게 20년 만기 구간을 기준으로 함.
+		// 최종 Shock Curve 생성 단계에서만 확장된 Tenor(23년)를 적용하여 장기 만기 구간의 충격률을 산출하도록 수정.
 		double[]     tenorLLP   = new double[(int) (Math.round(this.tenor[this.tenor.length-1]))];
+//		double[]     tenorLLP   = new double[this.llp];
 		for(int i=0; i<tenorLLP.length; i++) tenorLLP[i] = i+1;
 		SimpleMatrix factorLLP  = new SimpleMatrix(factorLoad(Lambda, tenorLLP, true));
 
@@ -977,7 +990,7 @@ public class AFNelsonSiegel extends IrModel {
 			System.exit(0);
 		}
 		SimpleMatrix M          = new SimpleMatrix(chol.getT(M1.getDDRM()));  //for IAIS Modified after 2017
-////		for(int i=0; i<M.numRows(); i++) log.info("M matrix: {}, {}, {}", M.get(i,0),  M.get(i,1),  M.get(i,2));
+//		for(int i=0; i<M.numRows(); i++) log.info("M matrix: {}, {}, {}", M.get(i,0),  M.get(i,1),  M.get(i,2));
 
         ////////////////////////////////////////////////////////////////////////////////
 
@@ -999,12 +1012,26 @@ public class AFNelsonSiegel extends IrModel {
 //		double rotation         = Math.atan(S2.elementSum() / S1.elementSum());
 		double rotation         = Math.atan2(S2.elementSum(), S1.elementSum());
 
+		
+//		26.06.08 shockTenor 추가 
+		if(this.llp > this.tenor[this.tenor.length - 1]) {
+		    shockTenor = Arrays.copyOf(this.tenor,this.tenor.length + 1);
+		    shockTenor[shockTenor.length - 1] = this.llp;
+		}
+		else {
+		    shockTenor = this.tenor;
+		}
+		
+		log.info("shockTenor : {}", Arrays.toString(shockTenor));
+		
 		// Mean-Reversion, Level and Twist Shock
 		SimpleMatrix MeanR      = new SimpleMatrix(toIdentityMatrix(this.nf)).minus(eKappa).mult(Theta.minus(X0));
 		SimpleMatrix Level      = new SimpleMatrix(Me1.scale( Math.cos(rotation)).plus(Me2.scale(Math.sin(rotation)))).scale(new NormalDistribution().inverseCumulativeProbability(this.confInterval));
 		SimpleMatrix Twist      = new SimpleMatrix(Me1.scale(-Math.sin(rotation)).plus(Me2.scale(Math.cos(rotation)))).scale(new NormalDistribution().inverseCumulativeProbability(this.confInterval));
-
-		SimpleMatrix CoefInt    = new SimpleMatrix(factorLoad(Lambda, this.tenor, true));
+		
+//		26.06.08 shockTenor 추가 
+//		SimpleMatrix CoefInt    = new SimpleMatrix(factorLoad(Lambda, this.tenor, true));
+		SimpleMatrix CoefInt    = new SimpleMatrix(factorLoad(Lambda, shockTenor, true));
 		SimpleMatrix BaseShock  = CoefInt.mult(new SimpleMatrix(vecToMat(new double[] {0.0, 0.0, 0.0})));
 		SimpleMatrix MeanRShock = CoefInt.mult(MeanR);
 		SimpleMatrix LevelShock = CoefInt.mult(Level);
@@ -1163,7 +1190,7 @@ public class AFNelsonSiegel extends IrModel {
 
 		for(int i=0; i<fLoad.length; i++) {
 			for(int j=0; j<2; j++) fLoad[i][j] = fLoadFull[i][j+1];
-//			log.info("{}, {}, {}, {}, {}", lambda, tau[i], fLoad[i][0], fLoad[i][1]);
+//			log.info("factorLoad: {}, {}, {}, {}, {}", lambda, tau[i], fLoad[i][0], fLoad[i][1]);
 		}
 		return fLoad;
 	}
