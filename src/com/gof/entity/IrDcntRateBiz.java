@@ -27,7 +27,7 @@ import lombok.ToString;
 @ToString
 @AllArgsConstructor
 @Builder
-public class IrDcntRateBiz implements Serializable, EntityIdentifier {
+public class IrDcntRateBiz implements Serializable, EntityIdentifier, Comparable<IrDcntRateBiz> {
 
 	private static final long serialVersionUID = 9213714569868056834L;
 
@@ -92,5 +92,12 @@ public class IrDcntRateBiz implements Serializable, EntityIdentifier {
 				.lastUpdateDate(this.getLastUpdateDate())
 
 						.build();
+	}
+	
+	
+	@Override
+	public int compareTo(IrDcntRateBiz other) {
+//		return this.baseYymm.compareTo(other.getBaseYymm());
+		return this.baseYymm.compareTo(other.baseYymm);
 	}
 }

@@ -159,6 +159,11 @@
     <mapping class="com.gof.entity.IrDiscRateUsr"/>
     <mapping class="com.gof.entity.IrDiscRate"/>
     <mapping class="com.gof.entity.IrDiscMgtRate"/>
+    <mapping class="com.gof.entity.IrDiscRateStat"/>
+    
+    <mapping class="com.gof.entity.IrDiscExMst"/>
+    <mapping class="com.gof.entity.IrDiscExRateUsr"/>
+    <mapping class="com.gof.entity.IrDiscExRateWghtUsr"/>
 
   </session-factory>
 </hibernate-configuration>

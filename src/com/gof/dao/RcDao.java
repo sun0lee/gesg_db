@@ -4,16 +4,14 @@ import java.util.List;
 
 import org.hibernate.Session;
 
+import com.gof.entity.IrDiscExMst;
+import com.gof.entity.IrDiscExRateUsr;
+import com.gof.entity.IrDiscExRateWghtUsr;
+import com.gof.entity.IrDiscMgtRate;
+import com.gof.entity.IrDiscRate;
 import com.gof.entity.IrDiscRateUsr;
-import com.gof.entity.RcCorpPd;
-import com.gof.entity.RcCorpPdBiz;
-import com.gof.entity.RcCorpTm;
-import com.gof.entity.RcCorpTmUsr;
-import com.gof.entity.RcInflationBiz;
 import com.gof.entity.RcInflationUsr;
-import com.gof.entity.RcSegLgdBiz;
 import com.gof.entity.RcSegLgdUsr;
-import com.gof.entity.RcSegPrepRateBiz;
 import com.gof.entity.RcSegPrepRateUsr;
 import com.gof.util.HibernateUtil;
 
@@ -117,5 +115,103 @@ public class RcDao extends DaoUtil {
 					  .getResultList()
 					  ;
 	}
+	
+	
+	public static List<IrDiscRate> getIrDiscRateHis(String bssd, String discRateCalcTyp,  String matCd) {
+		String query = " select a                           "
+				     + " from IrDiscRate a            "
+		 		 	 + " where a.baseYymm <= :baseYymm      "
+		 		 	 + " and a.discRateCalcTyp = :discRateCalcTyp      "
+		 		 	 + " and a.matCd = :matCd      "
+//		 		 	 + " orderBy a.baseYymm desc"
+		 		 	 ;
 
+		return session.createQuery(query, IrDiscRate.class)
+					  .setParameter("baseYymm", bssd)
+					  .setParameter("discRateCalcTyp", discRateCalcTyp)
+					  .setParameter("matCd", matCd)
+					  .getResultList()
+					  ;
+	}
+
+	
+	
+	public static List<IrDiscMgtRate> getIrDiscMgtRate(String bssd) {
+		String query = " select a                           "
+				     + "   from IrDiscMgtRate a            "
+		 		 	 + "  where a.baseYymm = :baseYymm      "
+		 		 	 ;
+
+		return session.createQuery(query, IrDiscMgtRate.class)
+					  .setParameter("baseYymm", bssd)
+					  .getResultList()
+					  ;
+	}
+	
+	
+	public static List<IrDiscMgtRate> getIrDiscMgtRate(String bssd, String acctDv) {
+		String query = " select a                           "
+				     + "   from IrDiscMgtRate a            "
+		 		 	 + "  where a.baseYymm = :baseYymm      "
+		 		 	 + "  and a.acctDvCd = :acctDvCd      "
+		 		 	 ;
+
+		return session.createQuery(query, IrDiscMgtRate.class)
+					  .setParameter("baseYymm", bssd)
+					  .setParameter("acctDvCd", acctDv)
+					  .getResultList()
+					  ;
+	}
+	
+	public static List<IrDiscMgtRate> getIrDiscMgtRateHis(String bssd, String acctDv) {
+		String query = " select a                           "
+				     + "   from IrDiscMgtRate a            "
+		 		 	 + "  where a.baseYymm <= :baseYymm      "
+		 		 	 + "  and a.acctDvCd = :acctDvCd"
+		 		 	 ;
+
+		return session.createQuery(query, IrDiscMgtRate.class)
+					  .setParameter("baseYymm", bssd)
+					  .setParameter("acctDvCd", acctDv)
+					  .getResultList()
+					  ;
+	}
+	
+	
+	
+	public static List<IrDiscExMst> getIrDiscExMstList() {
+		String query = " select a                        "
+				     + "   from IrDiscExMst a            "
+		 		 	 ;
+
+		return session.createQuery(query, IrDiscExMst.class)
+					  .getResultList()
+					  ;
+	}
+	
+	
+	public static List<IrDiscExRateUsr> getIrDiscExRateUsrHis(String bssd) {
+		String query = " select a                           "
+				     + "   from IrDiscExRateUsr a            "
+		 		 	 + "  where a.baseYymm <= :baseYymm      "
+		 		 	 ;
+
+		return session.createQuery(query, IrDiscExRateUsr.class)
+					  .setParameter("baseYymm", bssd)
+					  .getResultList()
+					  ;
+	}
+	
+	
+	public static List<IrDiscExRateWghtUsr> getIrDiscExRateWghtUsrList(String bssd) {
+		String query = " select a                           "
+				     + "   from IrDiscExRateWghtUsr a            "
+		 		 	 + "  where a.baseYymm = :baseYymm      "
+		 		 	 ;
+
+		return session.createQuery(query, IrDiscExRateWghtUsr.class)
+					  .setParameter("baseYymm", bssd)
+					  .getResultList()
+					  ;
+	}
 }

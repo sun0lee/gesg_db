@@ -50,7 +50,8 @@ public enum EJob {
 	, ESG840 ("Segment Prepay Rate")
 	, ESG850 ("Inflation")
 	, ESG860 ("Disclosure Rate")
-	, ESG870 ("Inv Manage Cost")
+//	, ESG870 ("Inv Manage Cost")
+	, ESG870 ("Disclosure Stats")
 
 	, ESG901 ("Save IntRate ")
 	, ESG902 ("Save PD & SPREAD ")

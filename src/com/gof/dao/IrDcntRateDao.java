@@ -99,6 +99,27 @@ public class IrDcntRateDao extends DaoUtil {
 				      .getResultList();
 	}
 
+	public static List<IrDcntRateBiz> getIrDcntRateBizHisList(String bssd, String bizDv, String irCurveId,  int sceNo ,String matCd) {
+
+		String query = " select a from IrDcntRateBiz a "
+				 	 + "  where 1=1 "
+				 	 + "    and a.baseYymm 		<= :baseYymm "
+				 	 + "    and a.applBizDv 	= :applBizDv "
+				 	 + "    and a.irCurveId 	= :irCurveId "
+				 	 + "	and a.irCurveSceNo  = :sceNo"
+				 	 + "    and a.matCd     	= :matCd "
+				 	 + "    order by  a.baseYymm desc"
+				 	 
+				 	 ;
+
+		return session.createQuery(query, IrDcntRateBiz.class)
+				      .setParameter("baseYymm", bssd)
+				      .setParameter("applBizDv", bizDv)
+				      .setParameter("irCurveId", irCurveId)
+				      .setParameter("sceNo", sceNo)
+				      .setParameter("matCd", matCd)
+				      .getResultList();
+	}
 
 	public static List<IrDcntRate> getIrDcntRateList(String bssd, String applBizDv) {
 

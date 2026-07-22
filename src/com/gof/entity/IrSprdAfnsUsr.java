@@ -13,6 +13,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Table(name ="E_IR_SPRD_AFNS_USR")
@@ -20,6 +21,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @EqualsAndHashCode
+@ToString
 public class IrSprdAfnsUsr implements Serializable, EntityIdentifier {	
 	
 	private static final long serialVersionUID = -8160719685730683413L;

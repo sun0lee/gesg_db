@@ -22,6 +22,7 @@ import lombok.ToString;
 
 @Embeddable
 @ToString
+@EqualsAndHashCode
 public class IrCurveYtmId  implements Serializable{
 
 	

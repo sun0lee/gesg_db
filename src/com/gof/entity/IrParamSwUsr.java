@@ -3,7 +3,6 @@ package com.gof.entity;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -56,7 +55,7 @@ public class IrParamSwUsr implements Serializable, EntityIdentifier {
 	private Double addSprd;
 	private String pvtRateMatCd;
 	private Double multPvtRate;
-	private Double ytmAddSprd; // db column 추가 
+	private Double ytmAddSprd;
 	private String lastModifiedBy;
 	private LocalDateTime lastUpdateDate;
 
