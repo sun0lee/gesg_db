@@ -62,7 +62,13 @@ import com.gof.entity.IrDcntRateBuIm;
 import com.gof.entity.IrDcntSceIm;
 import com.gof.entity.IrDcntSceStoBiz;
 import com.gof.entity.IrDcntSceStoGnr;
+import com.gof.entity.IrDiscExMst;
+import com.gof.entity.IrDiscExRateUsr;
+import com.gof.entity.IrDiscExRateWghtUsr;
+import com.gof.entity.IrDiscMgtRate;
 import com.gof.entity.IrDiscRate;
+import com.gof.entity.IrDiscRateStat;
+import com.gof.entity.IrDiscRateUsr;
 import com.gof.entity.IrParamAfnsCalc;
 import com.gof.entity.IrParamHwBiz;
 import com.gof.entity.IrParamHwCalc;
@@ -958,8 +964,6 @@ public class Main {
 
 					Map<String, List<?>> irShockSenario = new TreeMap<String, List<?>>();
 					irShockSenario = Esg220_ShkSprdAfns.createAfnsShockScenario(FinUtils.toEndOfMonth(bssd), irModelId, curveHisList, curveBaseList, tenorList, dt, sigmaInit
-													                          , irCurveSwMap.get(irCrv.getKey()).getLtfr()
-														                      , irCurveSwMap.get(irCrv.getKey()).getLtfrCp()
 //													                          , irCurveSwMap.get(irCrv.getKey()).getLtfr()
 //														                      , irCurveSwMap.get(irCrv.getKey()).getLtfrCp()
 																			  , irCurveSwMap.get(irCrv.getKey())
@@ -3322,8 +3326,101 @@ public class Main {
 				int delNum2 = session.createQuery("delete IrDiscRate a where a.baseYymm = :param").setParameter("param", bssd).executeUpdate();
 				log.info("[{}] has been Deleted in Job:[{}] [BASE_YYMM: {}, COUNT: {}]", Process.toPhysicalName(IrDiscRate.class.getSimpleName()), jobLog.getJobId(), bssd, delNum2);
 
+				List<IrDiscRate> rstList = new ArrayList<IrDiscRate>();
+
+//				1. 사용자 입력 정보 ==> 공시이율 적재
 				RcDao.getIrDiscRateUsr(bssd).stream().map(s -> s.convertToDiscRate()).forEach(s-> session.saveOrUpdate(s));
 
+
+//				2. 외부지표금리의 3개월 평균 base, up, down 시나리오
+				List<IrSprdAfnsBiz> shockSpread = IrSprdDao.getIrSprdAfnsBizList(bssd).stream()
+															.filter(s->s.getIrCurveId().equals("1010000"))
+															.filter(s->s.getIrModelId().equals("AFNS"))
+															.collect(toList());
+//				3. RM 관리 외부지표 금리 적재
+				List<IrDiscExRateUsr> discExRateUsr = RcDao.getIrDiscExRateUsrHis(bssd);
+
+				List<IrDiscExRateUsr> currDiscExRateUsr = discExRateUsr.stream().filter(s->s.getBaseYymm().equals(bssd)).collect(toList());
+				Map<String, Map<String, Double>> discExRateSceMap = new HashMap<String, Map<String,Double>>();
+
+				List<IrDiscExRateUsr> tempExRateUsr = new ArrayList<IrDiscExRateUsr>();
+
+				for( IrDiscExRateUsr aa : currDiscExRateUsr) {
+					log.info("EX Rate between : {},{},{}", aa.getExRatePk(), aa.getCalcStYymm(), aa.getCalcEndYymm());
+					tempExRateUsr = discExRateUsr.stream().filter(s-> s.getExRatePk().equals(aa.getExRatePk())).collect(toList());
+
+//					discExRateSceMap.put("BASE", Esg860_DiscRate.getBaseAvgExRate(aa.getCalcStYymm(), aa.getCalcEndYymm(), discExRateUsr, shockSpread));
+					discExRateSceMap.put("BASE", Esg860_DiscRate.getBaseAvgExRate(aa.getCalcStYymm(), aa.getCalcEndYymm(), discExRateUsr, shockSpread));
+					discExRateSceMap.put("UP",   Esg860_DiscRate.getUpAvgExRate(aa.getCalcStYymm(), aa.getCalcEndYymm(), discExRateUsr, shockSpread));
+					discExRateSceMap.put("DOWN", Esg860_DiscRate.getDownAvgExRate(aa.getCalcStYymm(), aa.getCalcEndYymm(), discExRateUsr, shockSpread));
+				}
+
+//				discExRateSceMap.entrySet().forEach(s-> log.info("EX Rate Avg : {},{}", s.getKey(), s.getValue()));
+
+
+				//4. 공시이율 코드의 외부지표금리별 가중치 확정
+				Map<String, Double> discExRateWghtUsrMap = RcDao.getIrDiscExRateWghtUsrList(bssd).stream().collect(toMap(IrDiscExRateWghtUsr::getPk, IrDiscExRateWghtUsr::getExRateWght));
+				List<IrDiscExMst> discExMst = RcDao.getIrDiscExMstList().stream().map(s-> s.updateWeight(discExRateWghtUsrMap)).collect(toList());
+
+				Map<String, List<IrDiscExMst>> discExMstMap = discExMst.stream().collect(groupingBy(IrDiscExMst::getIntRateCd, toList()));
+
+
+				List<IrDiscRateUsr> discRateUsr = RcDao.getIrDiscRateUsr(bssd);
+				double baseExRate =0.0;
+				double upExRate =0.0;
+				double downExRate =0.0;
+				IrDiscExMst currExMst ;
+				for( IrDiscRateUsr aa : discRateUsr) {
+					baseExRate =0.0;
+					upExRate   =0.0;
+					downExRate =0.0;
+					currExMst = null;
+
+					if(discExMstMap.containsKey(aa.getIntRateCd())) {
+
+						for(IrDiscExMst bb : discExMstMap.get(aa.getIntRateCd())) {
+							log.info("EX Rate for BASE, UP, DOWN by DISC CODE  : {},{},{},{}, {}", aa.getIntRateCd(), bb.getExRatePk(), bb.getExRateWght(), bb.getAddSpread(),  discExRateSceMap.get("BASE").getOrDefault(bb.getExRatePk(), 0.0));
+							baseExRate = baseExRate + bb.getAdjAddSpread()  + bb.getExRateWght() * discExRateSceMap.get("BASE").getOrDefault(bb.getExRatePk(), 0.0) / 100.0;
+							upExRate   = upExRate   + bb.getAdjAddSpread()  + bb.getExRateWght() * discExRateSceMap.get("UP").getOrDefault(bb.getExRatePk(), 0.0)   / 100.0;
+							downExRate = downExRate + bb.getAdjAddSpread()  + bb.getExRateWght() * discExRateSceMap.get("DOWN").getOrDefault(bb.getExRatePk(), 0.0) / 100.0;
+
+							currExMst = bb;
+						}
+
+						log.info("Calculated EX Rate for BASE, UP, DOWN : {},{},{},{}, {}", aa.getIntRateCd(), baseExRate, upExRate, downExRate);
+						log.info("Calculated Ronded EX Rate for BASE  : {},{},{},{}, {}", aa.getIntRateCd(), currExMst.getRound(baseExRate));
+
+
+						rstList.add(aa.convertToDiscRate(1, currExMst.getRound(baseExRate) ));
+						rstList.add(aa.convertToDiscRate(3, currExMst.getRound(upExRate) ));
+						rstList.add(aa.convertToDiscRate(4, currExMst.getRound(downExRate)));
+
+//						rstList.add(aa.convertToDiscRate(1, currExMst.getRound(baseExRate) / 100.0));
+//						rstList.add(aa.convertToDiscRate(3, currExMst.getRound(upExRate) / 100.0));
+//						rstList.add(aa.convertToDiscRate(4, currExMst.getRound(downExRate/ 100.0)));
+//						rstList.add(aa.convertToDiscRate(1, Math.round(baseExRate * 10000 )/10000.0));`
+//						rstList.add(aa.convertToDiscRate(3, Math.round(upExRate   * 10000 )/10000.0));
+//						rstList.add(aa.convertToDiscRate(4, Math.round(downExRate * 10000 )/10000.0));
+
+					}
+					else {
+						rstList.add(aa.convertToDiscRate(1, aa.getExBaseIr()));
+						rstList.add(aa.convertToDiscRate(3, aa.getExBaseIr()));
+						rstList.add(aa.convertToDiscRate(4, aa.getExBaseIr()));
+					}
+				}
+
+
+//				List<IrSprdAfnsBiz> shockSpread = IrSprdDao.getIrSprdAfnsBizList("202306").stream().filter(s->s.getIrCurveId().equals("1010000")).collect(toList());
+//				List<IrSprdAfnsUsr> shockSpread = IrSprdDao.getIrSprdAfnsUsrList("202306", "AFNS", "1010000");
+
+//				Esg860_DiscRate.createDiscRate(bssd, "IR").forEach(s-> save(s));
+
+
+//				Esg860_DiscRate.createDiscRate(bssd, discRateUsr,  discExMst , discExRateUsr, discExRateWghtUsr , shockSpread)
+//				.forEach(s-> log.info("zzz : {}", s.toString()));
+				rstList.forEach(s-> log.info("Calculated DISD RATE for KICS: {}", s.toString()));
+				rstList.forEach(s-> save(s));
 				session.flush();
 				session.clear();
 				completeJob("SUCCESS", jobLog);
@@ -3336,22 +3433,47 @@ public class Main {
 			session.getTransaction().commit();
 		}
 	}
-	
+
 	private static void job870() {
 		if(jobList.contains("870")) {
 			session.beginTransaction();
 			CoJobInfo jobLog = startJogLog(EJob.ESG870);
 
 			try {
-//				int delNum2 = session.createQuery("delete RcInflationBiz a where a.baseYymm = :param").setParameter("param", bssd).executeUpdate();
-//				log.info("[{}] has been Deleted in Job:[{}] [BASE_YYMM: {}, COUNT: {}]", Process.toPhysicalName(RcInflationBiz.class.getSimpleName()), jobLog.getJobId(), bssd, delNum2);
-//
-//				RcDao.getRcInflationUsr(bssd).stream().limit(1).map(s -> s.convertToBiz(bssd, "KICS")).forEach(s-> session.saveOrUpdate(s));
-//				RcDao.getRcInflationUsr(bssd).stream().limit(1).map(s -> s.convertToBiz(bssd, "IFRS")).forEach(s-> session.saveOrUpdate(s));
-//
-//
-//				session.flush();
-//				session.clear();
+				int delNum2 = session.createQuery("delete IrDiscRateStat a where a.baseYymm = :param").setParameter("param", bssd).executeUpdate();
+				log.info("[{}] has been Deleted in Job:[{}] [BASE_YYMM: {}, COUNT: {}]", Process.toPhysicalName(IrDiscRateStat.class.getSimpleName()), jobLog.getJobId(), bssd, delNum2);
+
+
+				//국고채 ( 1010000 ) 만기 12개월 과거 금리 이력 데이터 추출
+				List<IrDcntRateBiz> irCurveList = IrDcntRateDao.getIrDcntRateBizHisList(bssd, "KICS_L", "1010000", 1 , "M0012");
+
+				log.info("siz : {},{}", irCurveList.size(), bssd );
+//				irCurveList.forEach(s-> log.info("Job 870 : {},{}", s.toString()));
+
+				//for UD
+				//이율코드별로 사용자 정의 (UD), 만기 3개월 인 과거 데이터 추출
+				List<IrDiscRate> irDiscRateList = RcDao.getIrDiscRateHis(bssd, "UD", "M0003");
+				List<IrDiscMgtRate> invCost = RcDao.getIrDiscMgtRate(bssd, "UD" );						// TODO : replace UD for user input!!!!!
+				Esg870_DiscStat.createDiscStat(bssd, irDiscRateList, irCurveList, invCost).forEach(s-> saveOrUpdate(s));
+
+//				irDiscRateList.forEach(s-> log.info("Job 870 Disc : {},{}", s.toString()));
+
+
+
+				//for Alternative in Inv Cost : ZZ  ( NEED TO SET DISC_RATE_CALC_TYP  IN Job 860)
+				List<IrDiscRate> irDiscRateList1 = RcDao.getIrDiscRateHis(bssd, "ZZ", "M0003");
+				List<IrDiscMgtRate> invCost1 = RcDao.getIrDiscMgtRate(bssd, "ZZ" );
+				Esg870_DiscStat.createDiscStat(bssd, irDiscRateList1, irCurveList, invCost1).forEach(s-> saveOrUpdate(s));
+
+
+//				irDiscRateList1.forEach(s-> log.info("Job 870 Disc1 : {},{}", s.toString()));
+//				invCost1.forEach(s-> log.info("Job 870 invCost1 : {},{}", s.toString()));
+
+
+				session.flush();
+				session.clear();
+
+
 				completeJob("SUCCESS", jobLog);
 
 			} catch (Exception e) {
