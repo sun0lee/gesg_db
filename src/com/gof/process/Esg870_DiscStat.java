@@ -53,8 +53,14 @@ public class Esg870_DiscStat extends Process {
 //			rst.add( createDiscRateKics(disc, discRateList, invCost));	
 			rst.add( createDiscRateKicsNew(disc, discRateList, invCost));
 			
-			rst.add( createDiscRateIbiz(disc, discRateList, currIntRate));	
-			rst.add( createDiscRateIfrs(disc, discRateList, irMap));	
+			rst.add( createDiscRateIbiz(disc, discRateList, currIntRate));
+			
+			// 26.07.22 회귀분석 데이터가 부족한 경우 Warning & skip
+//			rst.add( createDiscRateIfrs(disc, discRateList, irMap));	
+			IrDiscRateStat ifrsStat = createDiscRateIfrs(disc, discRateList, irMap);
+			if (ifrsStat != null) {
+			    	rst.add(ifrsStat);
+				}
 		}
 		
 		log.info("{}({}) creates coefficients.  They are inserted into [{}] Table", jobId, EJob.valueOf(jobId).getJobName(), rst.size() );
@@ -76,10 +82,22 @@ public class Esg870_DiscStat extends Process {
 		
 		SimpleRegression linerRegression = new SimpleRegression(true);
 		
+		int cnt = 0;
+		
 		for(Map.Entry<String, Double> aa : irMap.entrySet()) {
 			if(baseDiscMap.containsKey(aa.getKey())) {
 				linerRegression.addData( aa.getValue(), baseDiscMap.get(aa.getKey()));
+				cnt++; 
 			}
+		}
+		
+		double slope = linerRegression.getSlope();
+		double intercept = linerRegression.getIntercept();
+
+		if (cnt < 2) {
+		    log.warn("[IFRS Regression Skip] BASE_YYMM={}, INT_RATE_CD={}, DATA_CNT={}",
+		        			currDisc.getBaseYymm(),currDisc.getIntRateCd(),cnt);
+		    return null;
 		}
 		
 		return IrDiscRateStat.builder()

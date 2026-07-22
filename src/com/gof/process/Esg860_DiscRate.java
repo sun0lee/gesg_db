@@ -84,7 +84,7 @@ public class Esg860_DiscRate extends Process {
 			for(IrDiscExRateUsr aa : entry.getValue()) {
 				shock = shockByMat.getOrDefault(aa.getMatCd(), 0.0);
 				if(entry.getValue().size()==3) {
-					log.info("Avg Ex Rate1 : {},  {},{},{}", aa.getBaseYymm(), aa.getExRatePk(), aa.getExRateIr(), shock);
+//					log.info("Avg Ex Rate1 : {},  {},{},{}", aa.getBaseYymm(), aa.getExRatePk(), aa.getExRateIr(), shock);
 					
 					if(aa.getBaseYymm().equals(stBssd)){
 						temp = temp + aa.getExRateIr() * 1.0 /6.0 ;
@@ -98,7 +98,7 @@ public class Esg860_DiscRate extends Process {
 				}
 				
 			}
-			log.info("Avg Ex Rate 2:  {},{},{},{},{}", entry.getKey(),   temp, shock, temp + shock * 100);
+//			log.info("Avg Ex Rate 2:  {},{},{},{},{}", entry.getKey(),   temp, shock, temp + shock * 100);
 			rstMap.put(entry.getKey(), temp + shock * 100);
 			temp = 0.0;
 		}
