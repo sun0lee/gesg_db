@@ -122,39 +122,40 @@ public class AFNelsonSiegel extends IrModel {
 //		this(baseDate, mode  , null, iRateHisList, iRateBaseList, isRealNumber, cmpdType     , dt, initSigma, DCB_MON_DIF, ltfrL, ltfrA, ltfrT,20, liqPrem, 1.0/12, 0.05, 2.0, 3, prjYear, 1e-10, 100, 0.995, 0.001);
 //	}
 
+	// 26.06.08 llp 추가 
+	public AFNelsonSiegel(LocalDate baseDate, String mode, List<IrParamAfnsBiz> inputParas, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma, int dayCountBasis,
+						  double ltfrL, double ltfrA, int ltfrT, int llp ,double liqPrem, double term, double minLambda, double maxLambda, int nf, int prjYear, double accuracy, int itrMax, double confInterval, double epsilon) {
 
-//	public AFNelsonSiegel(LocalDate baseDate, String mode, List<IrParamAfnsBiz> inputParas, List<IrCurveSpot> iRateBaseList, boolean isRealNumber, char cmpdType, double dt, double initSigma, int dayCountBasis,
-//						  double ltfrL, double ltfrA, int ltfrT ,double liqPrem, double term, double minLambda, double maxLambda, int nf, int prjYear, double accuracy, int itrMax, double confInterval, double epsilon) {
-//
-//		this.baseDate      = baseDate;
-//		this.mode          = mode;
-//		setTermStructureBase(iRateBaseList);
-//		setAfnsParamList(inputParas);
-//		//TODO: iRateBaseList 媛� null�엫�쓣 怨좊젮�빐�빞�븿. dummy愿��젏�뿉�꽌�씪�룄 irateBaseList�뒗 null�쓣 �븞�꽔�뒗寃� 醫뗭쓣�벏
-//		this.irCurveId     = iRateBaseList.get(0).getIrCurveId();
-//		this.isRealNumber  = isRealNumber;
-//		this.cmpdType      = cmpdType;
-//		this.dt            = dt;
-//		this.initSigma     = initSigma;
-//		this.dayCountBasis = dayCountBasis;
-//		this.ltfrL         = ltfrL;
-//		this.ltfrA         = ltfrA;
-//		this.ltfrT         = ltfrT;
-//		this.liqPrem       = liqPrem;
-//		this.term          = term;
-//		this.minLambda     = minLambda;
-//		this.maxLambda     = maxLambda;
-//		this.nf            = nf;
-//		this.prjYear       = prjYear;
-//		this.accuracy      = accuracy;
-//		this.itrMax        = itrMax;
-//		this.confInterval  = confInterval;
-//		this.epsilon       = epsilon;
-//
-//		for(int j=0; j<this.iRateBase.length; j++) {
-//			this.iRateBase[j] = (this.cmpdType == CMPD_MTD_DISC) ? irDiscToCont((this.isRealNumber ? 1 : 0.01) * this.iRateBase[j]) : (this.isRealNumber ? 1 : 0.01) * this.iRateBase[j];
-//		}
-//	}
+		this.baseDate      = baseDate;
+		this.mode          = mode;
+		setTermStructureBase(iRateBaseList);
+		setAfnsParamList(inputParas);
+		//TODO: iRateBaseList 媛� null�엫�쓣 怨좊젮�빐�빞�븿. dummy愿��젏�뿉�꽌�씪�룄 irateBaseList�뒗 null�쓣 �븞�꽔�뒗寃� 醫뗭쓣�벏
+		this.irCurveId     = iRateBaseList.get(0).getIrCurveId();
+		this.isRealNumber  = isRealNumber;
+		this.cmpdType      = cmpdType;
+		this.dt            = dt;
+		this.initSigma     = initSigma;
+		this.dayCountBasis = dayCountBasis;
+		this.ltfrL         = ltfrL;
+		this.ltfrA         = ltfrA;
+		this.ltfrT         = ltfrT;
+		this.llp           = llp;
+		this.liqPrem       = liqPrem;
+		this.term          = term;
+		this.minLambda     = minLambda;
+		this.maxLambda     = maxLambda;
+		this.nf            = nf;
+		this.prjYear       = prjYear;
+		this.accuracy      = accuracy;
+		this.itrMax        = itrMax;
+		this.confInterval  = confInterval;
+		this.epsilon       = epsilon;
+
+		for(int j=0; j<this.iRateBase.length; j++) {
+			this.iRateBase[j] = (this.cmpdType == CMPD_MTD_DISC) ? irDiscToCont((this.isRealNumber ? 1 : 0.01) * this.iRateBase[j]) : (this.isRealNumber ? 1 : 0.01) * this.iRateBase[j];
+		}
+	}
 
 
 	// 26.06.08 llp 추가 
