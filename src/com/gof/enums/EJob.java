@@ -6,6 +6,7 @@ public enum EJob {
 	, ESG110 ("Set Smith-Wilson Attribute")
 	, ESG120 ("Set Swaption Volatility")
 	, ESG130 ("Set YTM TermStructure")
+	, ESG140 ("External SPOT Rate Upload")
 
 	, ESG150 ("YTM to SPOT by Smith-Wilson Method")
 	, ESG151 ("YTM to SPOT by Smith-Wilson Method Migration")

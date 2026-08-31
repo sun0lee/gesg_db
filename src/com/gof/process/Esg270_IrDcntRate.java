@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.gof.dao.IrCurveSpotDao;
 import com.gof.dao.IrCurveYtmDao;
 import com.gof.dao.IrDcntRateDao;
 import com.gof.entity.IrCurveSpot;
@@ -18,6 +19,7 @@ import com.gof.entity.IrCurveYtm;
 import com.gof.entity.IrDcntRate;
 import com.gof.entity.IrDcntRateBu;
 import com.gof.entity.IrParamSw;
+import com.gof.enums.EBoolean;
 import com.gof.enums.EJob;
 import com.gof.model.SmithWilsonKics;
 import com.gof.model.SmithWilsonKicsBts;
@@ -33,12 +35,13 @@ public class Esg270_IrDcntRate extends Process {
 	public static final Esg270_IrDcntRate INSTANCE = new Esg270_IrDcntRate();
 	public static final String jobId = INSTANCE.getClass().getSimpleName().toUpperCase().substring(0, ENTITY_LENGTH);	
 	
-	public static List<IrDcntRate> createIrDcntRate(String bssd, String applBizDv, Map<String, Map<Integer, IrParamSw>> paramSwMap, Integer projectionYear) {	
+	public static List<IrDcntRate> createIrDcntRate(String bssd, String applBizDv, Map<String, Map<Integer, IrParamSw>> paramSwMap, Integer projectionYear,  Map<String, EBoolean> ytmUseYnMap) {	
 		
 		List<IrDcntRate> rst = new ArrayList<IrDcntRate>();
 		
 		for(Map.Entry<String, Map<Integer, IrParamSw>> curveSwMap : paramSwMap.entrySet()) {			
-
+			
+			EBoolean ytmUseYn = ytmUseYnMap.get(curveSwMap.getKey());
 			Map<String, IrDcntRate> adjRateSce1Map       = new TreeMap<String, IrDcntRate>();
 			Map<String, SmithWilsonRslt> baseRateSce1Map = new TreeMap<String, SmithWilsonRslt>();  			//for using SmithWilsonKicsBts not SmithWilsonKics
 //			List<IrDcntRate> adjRateSce1List             = new ArrayList<IrDcntRate>();			                //hereafter for KICS SCE_NO 7 and 8(totalShift)
@@ -107,22 +110,53 @@ public class Esg270_IrDcntRate extends Process {
 					
 					adjRateSce1Map = adjRateList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity(), (k, v) -> k, TreeMap::new));										
 					
-					List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
-					if(ytmList.size()==0) {
-						log.warn("No Historical YTM Data exist for [{}, {}] in [{}]", bssd, curveSwMap.getKey(), jobId);
-						continue;
-					}				
-					
-					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
-																 .baseDate(baseDate)					
-																 .ytmCurveHisList(ytmList)
-																 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
-																 .freq(StringUtil.objectToPrimitive(swSce.getValue().getFreq(), 2))
-																 .build();						
-					
-//					swBts.getSmithWilsonResultList(prjTenor).stream().filter(s -> Double.parseDouble(s.getMatCd().substring(1, 5)) <= 240).forEach(s -> log.info("{}, {}, {}", s.getMatCd(), s.getSpotDisc(), s.getFwdDisc()));
-					baseRateSce1Map = swBts.getSmithWilsonResultList(prjTenor).stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
+//					List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
+//					if(ytmList.size()==0) {
+//						log.warn("No Historical YTM Data exist for [{}, {}] in [{}]", bssd, curveSwMap.getKey(), jobId);
+//						continue;
+//					}				
+//					
+//					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
+//																 .baseDate(baseDate)					
+//																 .ytmCurveHisList(ytmList)
+//																 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
+//																 .freq(StringUtil.objectToPrimitive(swSce.getValue().getFreq(), 2))
+//																 .build();						
+//					
+////					swBts.getSmithWilsonResultList(prjTenor).stream().filter(s -> Double.parseDouble(s.getMatCd().substring(1, 5)) <= 240).forEach(s -> log.info("{}, {}, {}", s.getMatCd(), s.getSpotDisc(), s.getFwdDisc()));
+//					baseRateSce1Map = swBts.getSmithWilsonResultList(prjTenor).stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
 
+					if (ytmUseYn == EBoolean.Y) {
+						List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
+						if(ytmList.size()==0) {
+							log.warn("No Historical YTM Data exist for [{}, {}] in [{}]", bssd, curveSwMap.getKey(), jobId);
+							continue;						
+						}				
+						
+						SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
+																	 .baseDate(baseDate)					
+																	 .ytmCurveHisList(ytmList)
+																	 .alphaApplied(swSce.getValue().getSwAlphaYtm())													 
+																	 .freq(swSce.getValue().getFreq())
+																	 .build();						
+						
+	//					swBts.getSmithWilsonResultList(prjTenor).stream().filter(s -> Double.parseDouble(s.getMatCd().substring(1, 5)) <= 240).forEach(s -> log.info("{}, {}, {}", s.getMatCd(), s.getSpotDisc(), s.getFwdDisc()));
+						baseRateSce1Map = swBts.getSmithWilsonResultList(prjTenor).stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
+					} 
+				else {
+						// spot rate를 외부에서 받는 경우 ytm을 사용하지 않고 sw방식으로 base scen을 생성함 
+						List<IrCurveSpot> irCurveSpotListA = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
+						IrCurveSpot lastTenor = irCurveSpotListA.get(irCurveSpotListA.size() - 1);
+						
+						double ltfrA = lastTenor.getSpotRate();
+						
+						SmithWilsonKics swKicsA = new SmithWilsonKics(baseDate, irCurveSpotListA, CMPD_MTD_DISC, true
+														, ltfrA , projectionYear, 1, 100, DCB_MON_DIF, swSce.getValue().getSwAlphaYtm());
+						
+						baseRateSce1Map= swKicsA.getSmithWilsonResultList().stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
+					}
+					
+					
 					for(IrDcntRate rslt : adjRateList) {						
 						rslt.setSpotRate(baseRateSce1Map.get(rslt.getMatCd()).getSpotDisc());
 						rslt.setFwdRate (baseRateSce1Map.get(rslt.getMatCd()).getFwdDisc());

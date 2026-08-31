@@ -126,6 +126,7 @@ import com.gof.entity.his.HRcInflationBiz;
 import com.gof.entity.his.HRcSegLgdBiz;
 import com.gof.entity.his.HRcSegPrepRateBiz;
 import com.gof.entity.his.TransferJob;
+import com.gof.enums.EBoolean;
 import com.gof.enums.EJob;
 import com.gof.enums.ERunArgument;
 import com.gof.util.AesCrypto;
@@ -194,6 +195,7 @@ public class Main {
 		job110();       // Job 110: Set Smith-Wilson Attribute
 		job120();       // Job 120: Set Swaption Volatility
 		job130();       // Job 130: Set YTM TermStructure
+		job140();       // Job 140: External SPOT Rate Upload
 
 		job150();       // Job 110: YTM to SPOT by Smith-Wilson Method
 		job151();       // Job 111: YTM to SPOT by Smith-Wilson Method Migration
@@ -401,11 +403,12 @@ public class Main {
 //		jobList.add("110");
 //		jobList.add("120");
 //		jobList.add("130");
+//		jobList.add("140");
 //		jobList.add("150"); // E_IR_CURVE_SPOT (BASE_TENOR)
-////		jobList.add("151");
+//////		jobList.add("151");
 //		jobList.add("210");
-////		jobList.add("211");
-//		jobList.add("220");
+//		jobList.add("211");
+////		jobList.add("220");
 //		jobList.add("230");
 //		jobList.add("240");
 //		jobList.add("250");
@@ -435,6 +438,7 @@ public class Main {
 //		jobList.add("840");
 //		jobList.add("850");
 //		jobList.add("860");
+//		jobList.add("870");
 		
 //		jobList.add("900");
 //		jobList.add("901");
@@ -652,6 +656,39 @@ public class Main {
 		}
 	}
 
+	private static void job140() {
+		if(jobList.contains("140")) {
+			session.beginTransaction();
+			CoJobInfo jobLog = startJogLog(EJob.ESG140);			
+			
+			try {
+				for(Map.Entry<String, IrCurve> irCrv : irCurveMap.entrySet()) {
+					if(!irCurveSwMap.containsKey(irCrv.getKey())) {
+						log.warn("No Ir Curve Data [{}] in Smith-Wilson Map for [{}]", irCrv.getKey(), bssd);
+						continue;
+					}
+					
+					int delNum = session.createQuery("delete IrCurveSpot a where substr(a.baseDate,1,6) =:param1 and a.irCurveId=:param2 and a.lastModifiedBy = :param3")
+		                     			.setParameter("param1", bssd) 
+		                     			.setParameter("param2", irCrv.getKey())
+		                     			.setParameter("param3", "GESG_IrCurveSpotUsr")
+		                     			.executeUpdate();	
+					
+					log.info("[{}] has been Deleted in Job:[{}] [IR_CURVE_ID: {}, COUNT: {}]", Process.toPhysicalName(IrCurveSpot.class.getSimpleName()), jobLog.getJobId(), irCrv.getKey(), delNum);
+					
+					List<IrCurveSpot> irCurveSpotList = Esg140_ExternalSpot.loadSpotFromUsr(bssd, irCrv.getKey());
+					irCurveSpotList.stream().forEach(s -> session.save(s));					
+				}
+				completeJob("SUCCESS", jobLog);
+				
+			} catch (Exception e) {
+				log.error("ERROR: {}", e);
+				completeJob("ERROR", jobLog);
+			}			
+			session.saveOrUpdate(jobLog);
+			session.getTransaction().commit();
+		}
+	}	
 
 	private static void job150() {
 		if(jobList.contains("150")) {
@@ -667,6 +704,14 @@ public class Main {
 					}
 
 //					IrCurveSpotDao.deleteIrCurveSpotMonth(bssd, irCrv.getKey());
+					int delNum = session.createQuery("delete IrCurveSpot a where substr(a.baseDate,1,6) =:param1 and a.irCurveId=:param2 and a.lastModifiedBy = :param3")
+                 			.setParameter("param1", bssd) 
+                 			.setParameter("param2", irCrv.getKey())
+                 			.setParameter("param3", jobLog.getJobId())
+                 			.executeUpdate();
+					
+					log.info("[{}] has been Deleted in Job:[{}] [IR_CURVE_ID: {}, COUNT: {}]", Process.toPhysicalName(IrCurveSpot.class.getSimpleName()), jobLog.getJobId(), irCrv.getKey(), delNum);
+					
 					List<IrCurveYtm> ytmRstList = IrCurveYtmDao.getIrCurveYtmMonth(bssd, irCrv.getKey());
 //					List<IrCurveYtm> ytmRstList = IrCurveYtmDao.getIrCurveYtmAll(bssd, irCrv.getKey());
 					if(ytmRstList.size()==0) {
@@ -882,13 +927,13 @@ public class Main {
 			CoJobInfo jobLog = startJogLog(EJob.ESG220);
 
 			String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS"    ).trim().toUpperCase();
-			int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-			double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+			int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+			double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 			double dt              = 1.0 / 52.0;   //weekly only
-			int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-			double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-			double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+			int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+			double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+			double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 
 
 			List<IrParamModel> modelMst = IrParamModelDao.getParamModelList(irModelId);
@@ -973,10 +1018,11 @@ public class Main {
 														                      , confInterval
 														                      , epsilonInit);
 
-//					//for input Paras(currently null)
+//					//for input Paras(currently null) 외부 파라메타를 입력받는 경우 
 //					irShockSenario = Esg220_AfnsShkSprd.createAfnsShockScenarioByParam(FinUtils.toEndOfMonth(bssd), irModelId, null, curveBaseList, tenorList, dt, sigmaInit
-//																                       , irCurveSwMap.get(irCrv.getKey()).getLtfr()
-//																                       , irCurveSwMap.get(irCrv.getKey()).getLtfrCp()
+//																               //        , irCurveSwMap.get(irCrv.getKey()).getLtfr()
+//																               //        , irCurveSwMap.get(irCrv.getKey()).getLtfrCp()
+//																					   , irCurveSwMap.get(irCrv.getKey())
 //																                       , projectionYear
 //																                       , errorTolerance
 //																                       , kalmanItrMax
@@ -1189,19 +1235,31 @@ public class Main {
 //				List<IrDcntRate> userDcntRate = IrDcntRateDao.getIrDcntRateUsrList(bssd).stream().map(s -> s.convert()).collect(Collectors.toList());
 //				userDcntRate.stream().forEach(s -> session.save(s));
 				
+				// spotUsr 데이터 존재 여부에 따라 ytm 사용여부 태깅 
+				for (IrCurve curve : irCurveMap.values()) {
+				    boolean spotExists = IrCurveSpotDao.existsSpotRateUsr(bssd,curve.getIrCurveId());
+				    curve.setYtmUseYn( spotExists ? EBoolean.N : EBoolean.Y);
+				}
 				
-				List<IrDcntRate> kicsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "KICS", kicsSwMap, projectionYear);
+				// 원천에 따라 자산 할인율 base 커브를 생성하는 방법이 달라짐. 
+				Map<String, EBoolean> ytmUseYnMap = irCurveMap.values().stream().collect(Collectors.toMap(
+											            IrCurve::getIrCurveId,
+											            IrCurve::getYtmUseYn
+											        ));
+				
+//				List<IrDcntRate> kicsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "KICS", kicsSwMap, projectionYear);
+				List<IrDcntRate> kicsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "KICS", kicsSwMap, projectionYear, ytmUseYnMap);
 //				if(kicsDcntRate.isEmpty()) throw new Exception();
 				kicsDcntRate.stream().forEach(s -> session.save(s));
 
-				List<IrDcntRate> ifrsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "IFRS", ifrsSwMap, projectionYear);
+				List<IrDcntRate> ifrsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "IFRS", ifrsSwMap, projectionYear, ytmUseYnMap);
 				ifrsDcntRate.stream().forEach(s -> session.save(s));
 
 				
-				List<IrDcntRate> ibizDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "IBIZ", ibizSwMap, projectionYear);
+				List<IrDcntRate> ibizDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "IBIZ", ibizSwMap, projectionYear, ytmUseYnMap);
 				ibizDcntRate.stream().forEach(s -> session.save(s));
 
-				List<IrDcntRate> saasDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "SAAS", saasSwMap, projectionYear);
+				List<IrDcntRate> saasDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "SAAS", saasSwMap, projectionYear, ytmUseYnMap);
 				saasDcntRate.stream().forEach(s -> session.save(s));
 
 				
@@ -2273,13 +2331,13 @@ public class Main {
 				CoJobInfo jobLog = startJogLog(EJob.ESG710);
 
 				String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_IM"    ).trim().toUpperCase();
-				int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-				double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+				int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+				double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 				double dt              = 1.0 / 52.0;   //weekly only
-				int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-				double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-				double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+				int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+				double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+				double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 
 
 				List<IrParamModel> modelMst = IrParamModelDao.getParamModelList(irModelId);
@@ -2408,13 +2466,13 @@ public class Main {
 			CoJobInfo jobLog = startJogLog(EJob.ESG710);
 
 			String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_IM"    ).trim().toUpperCase();
-			int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-			double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+			int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+			double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 			double dt              = 1.0 / 52.0;   //weekly only
-			int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-			double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-			double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+			int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+			double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+			double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 
 
 			List<IrParamModel> modelMst = IrParamModelDao.getParamModelList(irModelId);
@@ -2531,13 +2589,13 @@ public class Main {
 				CoJobInfo jobLog = startJogLog(EJob.ESG720);
 
 				String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_IM"    ).trim().toUpperCase();
-				int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-				double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+				int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+				double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 				double dt              = 1.0 / 52.0;   //weekly only
-				int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-				double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-				double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+				int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+				double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+				double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 //				double epsilonInit     = 1.0;
 
 
@@ -2669,13 +2727,13 @@ public class Main {
 			CoJobInfo jobLog = startJogLog(EJob.ESG720);
 
 			String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_IM"    ).trim().toUpperCase();
-			int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-			double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+			int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+			double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 			double dt              = 1.0 / 52.0;   //weekly only
-			int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-			double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-			double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+			int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+			double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+			double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 //			double epsilonInit     = 1.0;
 
 
@@ -2798,13 +2856,13 @@ public class Main {
 				CoJobInfo jobLog = startJogLog(EJob.ESG730);
 
 				String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_IM"    ).trim().toUpperCase();
-				int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-				double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+				int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+				double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 				double dt              = 1.0 / 52.0;   //weekly only
-				int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-				double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-				double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+				int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+				double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+				double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 
 
 				List<IrParamModel> modelMst = IrParamModelDao.getParamModelList(irModelId);
@@ -2947,13 +3005,13 @@ public class Main {
 
 				String irModelId       = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_STO"    ).trim().toUpperCase();
 				String upperirModelId  = argInDBMap.getOrDefault("AFNS_MODE"         , "AFNS_IM"    ).trim().toUpperCase();
-				int    weekDay         = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
-				double confInterval    = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
+				int    weekDay         = Integer.valueOf(argInDBMap.getOrDefault("AFNS_WEEK_DAY"        , "5"));
+				double confInterval    = Double. valueOf(argInDBMap.getOrDefault("AFNS_CONF_INTERVAL"   , "0.995"));
 
 				double dt              = 1.0 / 52.0;   //weekly only
-				int    kalmanItrMax    = Integer.valueOf((String) argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
-				double sigmaInit       = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
-				double epsilonInit     = Double. valueOf((String) argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
+				int    kalmanItrMax    = Integer.valueOf(argInDBMap.getOrDefault("AFNS_KALMAN_ITR_MAX"  , "100"));
+				double sigmaInit       = Double. valueOf(argInDBMap.getOrDefault("AFNS_SIGMA_INIT"      , "0.05"));
+				double epsilonInit     = Double. valueOf(argInDBMap.getOrDefault("AFNS_EPSILON_INIT"    , "0.001"));
 
 
 				List<IrParamModel> modelMst = IrParamModelDao.getParamModelList(upperirModelId); // AFNS
@@ -3175,7 +3233,10 @@ public class Main {
 			CoJobInfo jobLog = startJogLog(EJob.ESG810);
 
 			try {
-				int delNum = session.createQuery("delete RcCorpTm a where a.baseYymm = :param").setParameter("param", bssd).executeUpdate();
+				int delNum = session.createQuery("delete RcCorpTm a where a.baseYymm = :param1 and a.lastModifiedBy = :param2")
+									.setParameter("param1", bssd) 
+									.setParameter("param2",jobLog.getJobId())
+									.executeUpdate();
 				log.info("[{}] has been Deleted in Job:[{}] [BASE_YYMM: {}, COUNT: {}]", Process.toPhysicalName(RcCorpTm.class.getSimpleName()), jobLog.getJobId(), bssd, delNum);
 
 				List<String> agencyCd = RcCorpPdDao.getAgencyCdUsr(bssd);
