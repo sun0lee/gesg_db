@@ -189,4 +189,18 @@ public class IrCurveSpot implements Serializable, EntityIdentifier {
 				.lastModifiedBy(from.getLastModifiedBy())
 						.build();
 	}
+	
+	public IrCurveSpot addSpread(double spotSpread) {
+
+	    IrCurveSpot spot = new IrCurveSpot();
+
+	    spot.setBaseDate(this.baseDate);
+	    spot.setIrCurveId(this.irCurveId);
+	    spot.setMatCd(this.matCd);
+	    spot.setSpotRate(this.spotRate + spotSpread);
+	    spot.setLastModifiedBy("GESG_" + this.getClass().getSimpleName());
+	    spot.setLastUpdateDate(LocalDateTime.now());
+
+	    return spot;
+	}
 }

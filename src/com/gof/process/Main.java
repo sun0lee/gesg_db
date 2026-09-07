@@ -400,14 +400,14 @@ public class Main {
 
 //		for local test
 //		jobList.clear();
-//		jobList.add("110");
-//		jobList.add("120");
-//		jobList.add("130");
+//////		jobList.add("110");
+//////		jobList.add("120");
+////		jobList.add("130");
 //		jobList.add("140");
 //		jobList.add("150"); // E_IR_CURVE_SPOT (BASE_TENOR)
 //////		jobList.add("151");
-//		jobList.add("210");
-//		jobList.add("211");
+////		jobList.add("210");
+////		jobList.add("211");
 ////		jobList.add("220");
 //		jobList.add("230");
 //		jobList.add("240");
@@ -512,6 +512,10 @@ public class Main {
 					log.error("Check Smith-Wilson Attribute in [{}] Table for [{}]", Process.toPhysicalName(IrParamSw.class.getSimpleName()), bssd);
 					throw new Exception();
 				}
+				
+				// 2026.09.07  Map2 : Parallel Shift 대상 시나리오
+				// 기존 YTM 입력 시, YTM Spread로 설정되던 시나리오 
+				// 현재는 입력 방식(YTM/SPOT)과 관계없이 Parallel Shift 처리 적용대상에 사용
 				
 				ytmSpreadList = paramSwList.stream().filter(s-> s.getYtmSpread() != 0.0).collect(toList());
 
@@ -1221,8 +1225,7 @@ public class Main {
 			session.getTransaction().commit();
 		}
 	}
-
-
+	
 	private static void job270() {
 		if(jobList.contains("270")) {
 			session.beginTransaction();
@@ -1234,18 +1237,8 @@ public class Main {
 
 //				List<IrDcntRate> userDcntRate = IrDcntRateDao.getIrDcntRateUsrList(bssd).stream().map(s -> s.convert()).collect(Collectors.toList());
 //				userDcntRate.stream().forEach(s -> session.save(s));
-				
-				// spotUsr 데이터 존재 여부에 따라 ytm 사용여부 태깅 
-				for (IrCurve curve : irCurveMap.values()) {
-				    boolean spotExists = IrCurveSpotDao.existsSpotRateUsr(bssd,curve.getIrCurveId());
-				    curve.setYtmUseYn( spotExists ? EBoolean.N : EBoolean.Y);
-				}
-				
-				// 원천에 따라 자산 할인율 base 커브를 생성하는 방법이 달라짐. 
-				Map<String, EBoolean> ytmUseYnMap = irCurveMap.values().stream().collect(Collectors.toMap(
-											            IrCurve::getIrCurveId,
-											            IrCurve::getYtmUseYn
-											        ));
+			
+				Map<String, EBoolean> ytmUseYnMap = getYtmUseYnMap(bssd);
 				
 //				List<IrDcntRate> kicsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "KICS", kicsSwMap, projectionYear);
 				List<IrDcntRate> kicsDcntRate = Esg270_IrDcntRate.createIrDcntRate(bssd, "KICS", kicsSwMap, projectionYear, ytmUseYnMap);
@@ -1295,14 +1288,15 @@ public class Main {
 			try {
 
 				String irModelId = "AFNS";		//for acquiring AFNS Shock Spread
-
+				
+				Map<String, EBoolean> ytmUseYnMap = getYtmUseYnMap(bssd);
 
 				for(Map.Entry<String, Map<Integer,IrParamSw>> entry :  kicsSwMap2.entrySet()) {
 					for( Map.Entry<Integer, IrParamSw> innerEntry : entry .getValue().entrySet()) {
-						log.info("zzzz : {},{}", innerEntry.getValue().getIrCurveSceNo(), innerEntry.getValue().getYtmSpread());
+						log.info("zzzz : {},{},{}",  innerEntry.getValue().getIrCurveId(), innerEntry.getValue().getIrCurveSceNo(), innerEntry.getValue().getYtmSpread());
 					}
 				}
-				List<IrDcntRateBu> kicsDcntRateBu = Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "KICS",  kicsSwMap2);
+				List<IrDcntRateBu> kicsDcntRateBu = Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "KICS",  kicsSwMap2, ytmUseYnMap);
 				kicsDcntRateBu.stream().forEach(s -> session.saveOrUpdate(s));
 				session.flush();
 				
@@ -1313,7 +1307,7 @@ public class Main {
 
 				}
 				
-				List<IrDcntRateBu> ibizDcntRateBu = Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "IBIZ",  ibizSwMap2);
+				List<IrDcntRateBu> ibizDcntRateBu = Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "IBIZ",  ibizSwMap2, ytmUseYnMap);
 				ibizDcntRateBu.stream().forEach(s -> session.saveOrUpdate(s));
 				session.flush();
 
@@ -1323,7 +1317,7 @@ public class Main {
 					}
 				}
 				
-				Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "IFRS",  ifrsSwMap2).forEach(s -> session.saveOrUpdate(s));
+				Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "IFRS",  ifrsSwMap2, ytmUseYnMap).forEach(s -> session.saveOrUpdate(s));
 				session.flush();
 				
 				
@@ -1334,7 +1328,7 @@ public class Main {
 
 				}
 				
-				Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "SAAS",  saasSwMap2).forEach(s -> session.saveOrUpdate(s));
+				Esg261_IrDcntRateBu_Ytm.setIrDcntRateBu(bssd, irModelId, "SAAS",  saasSwMap2, ytmUseYnMap).forEach(s -> session.saveOrUpdate(s));
 				session.flush();
 				
 				
@@ -1361,6 +1355,8 @@ public class Main {
 //			String irModelId = "AFNS";		//for acquiring AFNS Shock Spread
 //			YTM SPREAD 媛� �꽕�젙�맂 SW �꽭�똿留� �븘�꽣留�
 			
+			Map<String, EBoolean> ytmUseYnMap = getYtmUseYnMap(bssd);
+			
 			Map<Double, List<IrParamSw>> spMap = ytmSpreadList.stream().filter(s-> s.getYtmSpread() != 0.0).collect(groupingBy(IrParamSw::getYtmSpread, toList()));
 			
 			
@@ -1369,10 +1365,10 @@ public class Main {
 				Map<String, Map<Integer, IrParamSw>> kicsSwMap3 = entry.getValue().stream()
 								.collect(groupingBy(IrParamSw::getIrCurveId, TreeMap::new, Collectors.toMap(IrParamSw::getIrCurveSceNo, Function.identity(), (k, v) -> k, TreeMap::new)));
 
-				entry.getValue().forEach(s-> log.info("Entry in Job271 : {},{},{}", entry.getKey(), s.getIrCurveSceNo(), s.getShkSprdSceNo()));
+				entry.getValue().forEach(s-> log.info("Entry in Job271 : {},{},{},{}",s.getIrCurveId(), entry.getKey(), s.getIrCurveSceNo(), s.getShkSprdSceNo()));
 
 //				List<IrDcntRate> kicsDcntRate = Esg271_IrDcntRate.createIrDcntRate(bssd, "ALL", kicsSwMap3, projectionYear);
-				List<IrDcntRate> kicsDcntRate = Esg271_IrDcntRate.createIrDcntRate(bssd,  kicsSwMap3, projectionYear);
+				List<IrDcntRate> kicsDcntRate = Esg271_IrDcntRate.createIrDcntRate(bssd,  kicsSwMap3, ytmUseYnMap, projectionYear);
 				kicsDcntRate.stream().forEach(s -> saveOrUpdate(s));
 
 				session.flush();
@@ -3950,6 +3946,12 @@ public class Main {
 			}
 		}
 
+	// 26.09.05 입수원천 타입 구분 MAP 추가 
+	private static Map<String, EBoolean> getYtmUseYnMap(String bssd) {
+	    return irCurveMap.values().stream()
+	            .collect(Collectors.toMap(IrCurve::getIrCurveId, curve 
+	            							-> IrCurveSpotDao.existsSpotRateUsr(bssd,curve.getIrCurveId()) ? EBoolean.N : EBoolean.Y));
+	}
 
 	private static CoJobInfo startJogLog(EJob job) {
 		CoJobInfo jobLog = new CoJobInfo();

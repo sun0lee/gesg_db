@@ -39,11 +39,11 @@ public class IrCurve implements Serializable, EntityIdentifier {
 	@Enumerated(EnumType.STRING)
 	private EBoolean useYn;
 	
-	@Transient
-	private EBoolean ytmUseYn;
-
-	public void setYtmUseYn(EBoolean ytmUseYn) {
-	    this.ytmUseYn = ytmUseYn;
-	}
+//	@Transient
+//	private EBoolean ytmUseYn;
+//
+//	public void setYtmUseYn(EBoolean ytmUseYn) {
+//	    this.ytmUseYn = ytmUseYn;
+//	}
 	
 }

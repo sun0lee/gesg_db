@@ -12,6 +12,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.gof.dao.IrCurveSpotDao;
 import com.gof.dao.IrCurveYtmDao;
 import com.gof.dao.IrDcntRateDao;
 import com.gof.entity.IrCurveSpot;
@@ -19,10 +20,10 @@ import com.gof.entity.IrCurveYtm;
 import com.gof.entity.IrDcntRate;
 import com.gof.entity.IrDcntRateBu;
 import com.gof.entity.IrParamSw;
+import com.gof.enums.EBoolean;
 import com.gof.enums.EJob;
 import com.gof.model.SmithWilsonKics;
 import com.gof.model.SmithWilsonKicsBts;
-import com.gof.model.entity.SmithWilsonRslt;
 import com.gof.util.DateUtil;
 import com.gof.util.StringUtil;
 
@@ -34,22 +35,22 @@ public class Esg271_IrDcntRate extends Process {
 	public static final Esg271_IrDcntRate INSTANCE = new Esg271_IrDcntRate();
 	public static final String jobId = INSTANCE.getClass().getSimpleName().toUpperCase().substring(0, ENTITY_LENGTH);	
 	
-	public static List<IrDcntRate> createIrDcntRate(String bssd,  Map<String, Map<Integer, IrParamSw>> paramSwMap, Integer projectionYear) {	
+	public static List<IrDcntRate> createIrDcntRate(String bssd,  Map<String, Map<Integer, IrParamSw>> paramSwMap,  Map<String, EBoolean> ytmUseYnMap, Integer projectionYear) {	
 		List<IrDcntRate> rst = new ArrayList<IrDcntRate>();
 		
 		Map<Double, Map<String, IrDcntRate>> aaaMap = new HashMap<Double, Map<String,IrDcntRate>>();
 		
 		for(Map.Entry<String, Map<Integer, IrParamSw>> curveSwMap : paramSwMap.entrySet()) {			
-			List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
+			
 			for(Map.Entry<Integer, IrParamSw> swSce : curveSwMap.getValue().entrySet()) {
 				
 				String applBizDv = swSce.getValue().getApplBizDv();
+				EBoolean ytmUseYn = ytmUseYnMap.get(curveSwMap.getKey());
 				
 				
 				log.info("BIZ: [{}], IR_CURVE_ID: [{}], IR_CURVE_SCE_NO: [{}]", applBizDv, curveSwMap.getKey(), swSce.getKey());
 
 				List<IrCurveSpot> irCurveSpotLiabList = IrDcntRateDao.getIrDcntRateBuToAdjSpotList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey());
-				List<IrCurveYtm> ytmAddList = ytmList.stream().map(s->s.addSpread(swSce.getValue().getYtmSpread())).collect(Collectors.toList());
 				
 				if(irCurveSpotLiabList.size()==0) {
 					log.warn("No IR Dcnt Rate Data [BIZ: {}, IR_CURVE_ID: {}, IR_CURVE_SCE_NO: {}] in [{}] for [{}]", applBizDv, curveSwMap.getKey(), swSce.getKey(), toPhysicalName(IrDcntRateBu.class.getSimpleName()), bssd);
@@ -65,18 +66,39 @@ public class Esg271_IrDcntRate extends Process {
 				TreeSet<Double> tenorList = adjRateLiabList.stream().map(s -> Double.valueOf(1.0 * Integer.valueOf(s.getMatCd().substring(1)) / MONTH_IN_YEAR)).collect(Collectors.toCollection(TreeSet::new));
 				double[] prjTenor = tenorList.stream().mapToDouble(Double::doubleValue).toArray();
 				
+				List<IrDcntRate> adjRateAssetList;
+
+				if (ytmUseYn == EBoolean.Y) {
+					
+					List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
+				    List<IrCurveYtm> ytmAddList = ytmList.stream().map(s -> s.addSpread(swSce.getValue().getYtmSpread())).collect(Collectors.toList());
+
+				    SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
+									            .baseDate(baseDate)
+									            .ytmCurveHisList(ytmAddList)
+									            .alphaApplied(swSce.getValue().getSwAlphaYtm())
+									            .freq(swSce.getValue().getFreq())
+									            .build();
+
+				    adjRateAssetList = swBts.getSmithWilsonResultList(prjTenor).stream().map(s -> s.convertForAsset()).collect(Collectors.toList());
+
+				} else {
+
+					List<IrCurveSpot> spotAssetList = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
+					
+					double parallelShift =StringUtil.objectToPrimitive(swSce.getValue().getYtmSpread(),0.0);
+					spotAssetList = spotAssetList.stream().map(s -> s.addSpread(parallelShift))
+			                    				.collect(Collectors.toList());
+				  
+				    IrCurveSpot lastTenor =spotAssetList.get(spotAssetList.size() - 1);
+				    double ltfrA = lastTenor.getSpotRate();
+					
+					SmithWilsonKics swKicsA = new SmithWilsonKics(baseDate, spotAssetList, CMPD_MTD_DISC, true
+													, ltfrA , projectionYear, 1, 100, DCB_MON_DIF, swSce.getValue().getSwAlphaYtm());
+
+				    adjRateAssetList = swKicsA.getSmithWilsonResultList().stream().map(s -> s.convertForAsset()).collect(Collectors.toList());
+				}
 				
-//				---------------ytm spreadm �옄�궛 sw
-				SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
-															 .baseDate(baseDate)					
-															 .ytmCurveHisList(ytmAddList)
-															 .alphaApplied(swSce.getValue().getSwAlphaYtm())													 
-															 .freq(swSce.getValue().getFreq())
-															 .build();
-				
-				
-				
-				List<IrDcntRate> adjRateAssetList = swBts.getSmithWilsonResultList(prjTenor).stream().map(s -> s.convertForAsset()).collect(Collectors.toList());
 				Map<String, IrDcntRate> assetRateMap = adjRateAssetList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity()));
 				
 				
@@ -93,7 +115,7 @@ public class Esg271_IrDcntRate extends Process {
 				}					
 				
 				
-//				AFNS 異⑷꺽 �떆�굹由ъ삤 �쟻�슜�떆�뒗 �옄�궛 湲덈━怨≪꽑�� 遺�梨� 湲덈━怨≪꽑�쓽 李⑥씠濡� �궛異쒕뵥
+//				AFNS 
 				if(swSce.getValue().getShkSprdSceNo()==1) {
 					Map<String, IrDcntRate> baseRateSce1Map = adjRateLiabList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity()));
 					aaaMap.put(swSce.getValue().getYtmSpread(), baseRateSce1Map);
