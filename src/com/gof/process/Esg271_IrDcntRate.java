@@ -115,7 +115,7 @@ public class Esg271_IrDcntRate extends Process {
 				}					
 				
 				
-//				AFNS 
+//				AFNS 충격 시나리오 적용시는 자산 금리곡선은 부채 금리곡선의 차이로 산출딤
 				if(swSce.getValue().getShkSprdSceNo()==1) {
 					Map<String, IrDcntRate> baseRateSce1Map = adjRateLiabList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity()));
 					aaaMap.put(swSce.getValue().getYtmSpread(), baseRateSce1Map);

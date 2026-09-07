@@ -1279,7 +1279,7 @@ public class Main {
 	}
 
 
-	// ytm spread 瑜� �쟻�슜�븳 �븷�씤�쑉 �궛異�
+	// ytm spread 를 적용한 할인율 산출 
 	private static void job261() {
 		if(jobList.contains("261")) {
 			session.beginTransaction();
@@ -1353,7 +1353,7 @@ public class Main {
 		try {
 
 //			String irModelId = "AFNS";		//for acquiring AFNS Shock Spread
-//			YTM SPREAD 媛� �꽕�젙�맂 SW �꽭�똿留� �븘�꽣留�
+//			YTM SPREAD 가 설정된 SW 세팅만 필터링
 			
 			Map<String, EBoolean> ytmUseYnMap = getYtmUseYnMap(bssd);
 			
