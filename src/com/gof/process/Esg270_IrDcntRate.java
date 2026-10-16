@@ -166,37 +166,44 @@ public class Esg270_IrDcntRate extends Process {
 				else if(!applBizDv.equals("KICS") && swSce.getKey().equals(1)) {
 //				else if(!applBizDv.equals("KICS")) {
 					
-					adjRateSce1Map = adjRateList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity(), (k, v) -> k, TreeMap::new));		
-					
-//					List<IrCurveYtm> ytmList = IrDcntRateDao.getIrDcntRateBuToBaseSpotList(bssd, applBizDv, curveSwMap.getKey(), swSce.getKey()).stream().map(s -> s.convertSimpleYtm()).collect(Collectors.toList());
-					List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
-					if(ytmList.size()==0) {
-						log.warn("No IR Dcnt Rate Data [BIZ: {}, IR_CURVE_ID: {}, IR_CURVE_SCE_NO: {}] in [{}] for [{}]", applBizDv, curveSwMap.getKey(), swSce.getKey(), toPhysicalName(IrDcntRateBu.class.getSimpleName()), bssd);
-						continue;
+					adjRateSce1Map = adjRateList.stream().collect(Collectors.toMap(IrDcntRate::getMatCd, Function.identity(), (k, v) -> k, TreeMap::new));									
+					if (ytmUseYn == EBoolean.Y) {
+							List<IrCurveYtm> ytmList = IrCurveYtmDao.getIrCurveYtm(bssd, curveSwMap.getKey());
+							if(ytmList.size()==0) {
+								log.warn("No Historical YTM Data exist for [{}, {}] in [{}]", bssd, curveSwMap.getKey(), jobId);
+								continue;						
+							}				
+							
+							SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
+																		 .baseDate(baseDate)					
+																		 .ytmCurveHisList(ytmList)
+																		 .alphaApplied(swSce.getValue().getSwAlphaYtm())													 
+																		 .freq(swSce.getValue().getFreq())
+																		 .build();						
+							
+							baseRateSce1Map = swBts.getSmithWilsonResultList(prjTenor).stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
+						} 
+					else {
+							// spot rate를 외부에서 받는 경우 ytm을 사용하지 않고 sw방식으로 base scen을 생성함 
+							List<IrCurveSpot> irCurveSpotListA = IrCurveSpotDao.getIrCurveSpot(bssd, curveSwMap.getKey());
+							IrCurveSpot lastTenor = irCurveSpotListA.get(irCurveSpotListA.size() - 1);
+							
+							double ltfrA = lastTenor.getSpotRate();
+							
+							SmithWilsonKics swKicsA = new SmithWilsonKics(baseDate, irCurveSpotListA, CMPD_MTD_DISC, true
+															, ltfrA , projectionYear, 1, 100, DCB_MON_DIF, swSce.getValue().getSwAlphaYtm());
+							
+							baseRateSce1Map= swKicsA.getSmithWilsonResultList().stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
+						}
+	
+						
+	
+						for(IrDcntRate rslt : adjRateList) {						
+							rslt.setSpotRate(baseRateSce1Map.get(rslt.getMatCd()).getSpotDisc());
+							rslt.setFwdRate (baseRateSce1Map.get(rslt.getMatCd()).getFwdDisc());
+						}					
 					}
-					
-//					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
-//							 									 .baseDate(baseDate)					
-//							 									 .ytmCurveHisList(ytmList)
-//							 									 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
-//							 									 .freq(0)
-//							 									 .build();						
-
-					SmithWilsonKicsBts swBts = SmithWilsonKicsBts.of()
-																 .baseDate(baseDate)					
-																 .ytmCurveHisList(ytmList)
-																 .alphaApplied(StringUtil.objectToPrimitive(swSce.getValue().getSwAlphaYtm(), 0.1))													 
-																 .freq(StringUtil.objectToPrimitive(swSce.getValue().getFreq(), 2))
-																 .build();		
-					
-//				    swBts.getSmithWilsonResultList(prjTenor).stream().filter(s -> Double.parseDouble(s.getMatCd().substring(1, 5)) <= 240).forEach(s -> log.info("{}, {}, {}", s.getMatCd(), s.getSpotDisc(), s.getFwdDisc()));
-					baseRateSce1Map = swBts.getSmithWilsonResultList(prjTenor).stream().collect(Collectors.toMap(SmithWilsonRslt::getMatCd, Function.identity()));
-
-					for(IrDcntRate rslt : adjRateList) {						
-						rslt.setSpotRate(baseRateSce1Map.get(rslt.getMatCd()).getSpotDisc());
-						rslt.setFwdRate (baseRateSce1Map.get(rslt.getMatCd()).getFwdDisc());
-					}					
-				}
+				
 				//for KICS: Asset Discount Rate Scenario after scen#1 is generated from Above Insurance Discount Rate + Difference Rate of Insurance - Asset at SCE#1
 				else {					
 					TreeMap<String, Double> spotRateMap = new TreeMap<String, Double>();
